@@ -1,71 +1,103 @@
-Here are the three *most recently-maintained* open-source Python options that can take Sony *. ARW* RAW files and turn them into JPEGs automatically:
+# ARW → JPEG Converter 📸
 
-| Library                                                         | Latest version & release                                                                      | Install                           | Why pick it?                                                                                                                                                       |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **rawpy**                                                       | 0.25.0 – 12 May 2025 ([pypi.org][1])                                                          | `pip install rawpy imageio` | Lightweight wrapper around **LibRaw**; gives you a NumPy array you can post-process or save straight to JPEG. Cross-platform wheels for Py 3.9-3.12.               |
-| **OpenImageIO** (Python bindings `openimageio` / `oiio-python` ) | 3.0.6.\* – 2 May 2025 (PyPI) & 3.0.7.0 – 1 Jun 2025 (GitHub) ([pypi.org][2], [github.com][3]) | `pip install openimageio` | Industrial-strength reader/writer that natively understands hundreds of formats (including ARW) and ships a full CLI ( `oiiotool` ) for batch work.                  |
-| **raw-image-converter**                                         | 1.1.3 – 30 Apr 2024 ([pypi.org][4])                                                           | `pip install raw-image-converter` | Zero-code batch converter ( `raw_image_converter …` ) that wraps **rawpy**, PIL & multiprocessing. Handy when you just want a one-shot folder-to-folder JPEG export. |
+
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+
+Batch‑converts Sony **.ARW** (or just about any RAW format LibRaw understands) into high‑quality JPEGs with a single command.
 
 ---
 
-### Quick-start snippets
+## ✨ Features
 
-**1 · rawpy — minimal script**
+* 🔍 **Recursive or flat** conversion – grab everything in a tree or just one folder.
+* 🗄️ **Multi‑source** support – convert several shoots in one run.
+* 🎨 Uses **camera white‑balance** & skips auto‑brightening for faithful colours.
+* 🏗️ Preserves the original folder structure under the output root.
+* ⚡ Fast: powered by [`rawpy`](https://github.com/letmaik/rawpy) (LibRaw) + [`imageio`](https://github.com/imageio/imageio).
 
-```python
-import rawpy, imageio.v3 as iio
-from pathlib import Path
+---
 
-src_dir = Path("ARW_in")
-dst_dir = Path("JPG_out"); dst_dir.mkdir(exist_ok=True)
+## 📦 Installation
 
-for f in src_dir.glob("*.arw"):
-    with rawpy.imread(f) as raw:
-        rgb = raw.postprocess()          # demosaic + colour management
-    iio.imwrite(dst_dir/f.with_suffix(".jpg").name, rgb, quality=90)
+### Via [uv](https://github.com/astral-sh/uv) (recommended)
+
+First, clone the repository:
+```bash
+git clone https://github.com/your-username/michi-img-convert.git 
+cd michi-img-convert
 ```
 
-*Runs \~2× faster than Adobe DNG Converter on a modern CPU; tune `raw.postprocess()` kwargs for white-balance, gamma, etc.*
+Then, install dependencies:
+```bash
+uv init                 # once per project
+uv add rawpy imageio    # install dependencies
+```
 
----
-
-**2 · OpenImageIO (oiio) — single-line batch**
+### Via plain `pip`
 
 ```bash
-oiiotool *.arw --threads 0 -o "%0n.jpg"
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install rawpy imageio
 ```
 
-The same can be done inside Python:
-
-```python
-import OpenImageIO as oiio
-img_in  = oiio.ImageInput.open("photo.arw")
-spec    = img_in.spec()
-pixels  = img_in.read_image("float")
-oiio.write_image("photo.jpg", pixels, spec)
-```
-
----
-
-**3 · raw-image-converter — CLI**
+Clone or copy this repo and make the script executable:
 
 ```bash
-raw_image_converter --src ~/Pictures/ARW --tgt ./converted --ext .jpg --r 75%
+chmod +x convert_arw_cli.py
 ```
-
-Automatically walks the tree, converts every RAW (ARW/CR2/DNG/NEF …) to JPEG, keeps EXIF and can even delete the originals when you pass `--delete-source-directory` .
 
 ---
 
-### How to choose
+## 🚀 Usage
 
-* **Need complete control in Python?** Use **rawpy** – smallest dependency footprint and easy NumPy access for further edits.
-* **Batch-convert whole shoots or integrate into VFX pipelines?** Use **OpenImageIO**. It’s heavier but has superb format coverage, color-space management and threading.
-* **Want a no-code one-liner?** `raw_image_converter` is perfect; just point it at a directory.
+### Basic
 
-All three are MIT-licensed (OpenImageIO is BSD-style), active as of mid-2025, and have pre-built wheels for Windows, macOS and Linux, so no compiling is required.
+```bash
+python convert_arw_cli.py --src /path/to/RAW --dst /path/to/JPG
+```
 
-[1]: https://pypi.org/project/rawpy/ "rawpy·PyPI"
-[2]: https://pypi.org/project/OpenImageIO/?utm_source=chatgpt.com "OpenImageIO - PyPI"
-[3]: https://github.com/OpenImageIO/oiio/releases?utm_source=chatgpt.com "Releases · AcademySoftwareFoundation/OpenImageIO - GitHub"
-[4]: https://pypi.org/project/raw-image-converter/ "raw-image-converter·PyPI"
+### Convert multiple folders & recurse into sub‑folders
+
+```bash
+python convert_arw_cli.py   --src ~/Jobs/Wedding ~/Jobs/Portraits   --dst ~/JPEGs   --recurse
+```
+
+### Help
+
+```bash
+python convert_arw_cli.py --help
+```
+
+```
+Batch‑convert Sony .ARW RAW files to JPEG.
+
+options:
+  -s, --src ...    source folder(s)
+  -d, --dst PATH   destination root folder
+  -r, --recurse    recurse into sub‑folders
+```
+
+---
+
+## 📝 Project structure
+
+```
+.
+├── convert_arw_cli.py   # main CLI script
+├── convert_arw.py       # core conversion logic (used by CLI script)
+└── README.md            # project documentation
+```
+
+---
+
+## 🤝 Contributing
+
+Bug reports and pull requests are welcome! Feel free to open an issue or submit a PR.
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License – see [`LICENSE`](LICENSE) for details.
