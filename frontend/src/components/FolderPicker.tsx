@@ -82,7 +82,7 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
 
           <button
             type="submit"
-            className="w-full px-6 py-3.5 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white font-bold tracking-wide rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
+            className="font-tech w-full px-6 py-3.5 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white font-bold tracking-wide rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
           >
             Scan for .ARW Files
           </button>

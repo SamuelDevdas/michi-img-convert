@@ -69,11 +69,11 @@ export default function Home() {
               alt="TrueVine Insights Logo" 
               className="w-20 h-20 object-contain drop-shadow-2xl"
             />
-            <h1 className="font-display text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[var(--secondary-text)]">
+            <h1 className="font-display text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[var(--secondary-text)]">
               Spectrum
             </h1>
           </div>
-          <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold opacity-80">
+          <span className="font-tech text-xs uppercase tracking-widest text-[var(--accent)] font-semibold opacity-80">
             Professional ARW Workflow
           </span>
         </div>
@@ -146,15 +146,19 @@ export default function Home() {
       </div>
 
       {/* Footer Link - Fixed at bottom */}
-      <div className="fixed bottom-4 left-0 right-0 text-center pointer-events-none z-50">
+      <div className="fixed bottom-6 left-0 right-0 text-center pointer-events-none z-50">
         <a 
           href="https://truevineinsights.ch" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-xs text-[var(--secondary-text)] opacity-40 hover:opacity-100 transition-all duration-300 pointer-events-auto"
+          className="group inline-flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/5 transition-all duration-300 pointer-events-auto"
         >
-          <span className="font-light">Engineered by</span>
-          <span className="font-bold tracking-wider text-white">TrueVine Insights</span>
+          <span className="font-tech text-[10px] uppercase tracking-widest text-[var(--secondary-text)] opacity-70 group-hover:opacity-100 transition-opacity">
+            Engineered by
+          </span>
+          <span className="font-display font-bold text-sm tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-blue-500 filter drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all">
+            TrueVine Insights
+          </span>
         </a>
       </div>
     </main>
