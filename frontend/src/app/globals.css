@@ -5,29 +5,31 @@
 @tailwind utilities;
 
 :root {
-  --background: #F7F7F7;
-  --foreground: #1A1A1A;
-  --accent: #268E94;
-  --accent-hover: #1F7278;
-  --secondary-text: #666666;
-  --card-bg: #FFFFFF;
+  --background: #0E0E0E; /* Deep Matte Charcoal - Forced Dark Mode */
+  --foreground: #FFFFFF; /* Pure White */
+  --accent: #018488; /* Brand Teal */
+  --accent-hover: #026F73;
+  --secondary-text: #A0A0A0; /* Light Gray for readability */
+  --card-bg: rgba(255, 255, 255, 0.05); /* 5% White Overlay */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1A1A1A;
-    --foreground: #F7F7F7;
-    --accent: #33A6AE;
-    --accent-hover: #268E94;
-    --secondary-text: #999999;
-    --card-bg: #2A2A2A;
-  }
-}
+/* Light mode block removed to enforce dark mode only */
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+/* Unique Blue Glow Effect from TrueVine Insights */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(0, 100, 255, 0.08) 100%);
+  z-index: 9999;
 }
 
 @layer utilities {
@@ -36,5 +38,9 @@ body {
   }
   .font-display {
     font-family: 'Playfair Display', serif;
+  }
+  .glass-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 }
