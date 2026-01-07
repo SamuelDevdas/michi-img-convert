@@ -1,7 +1,7 @@
 [project]
 name = "michi-img-convert"
 version = "0.1.0"
-description = "Add your description here"
+description = "Batch-convert Sony ARW RAW files to high-quality JPEGs"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
