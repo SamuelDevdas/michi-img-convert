@@ -1,4 +1,59 @@
+"use client"
+
+import { useState } from 'react'
+import FolderPicker from '@/components/FolderPicker'
+import ScanResults from '@/components/ScanResults'
+import ConversionDashboard from '@/components/ConversionDashboard'
+import { useConverter } from '@/hooks/useConverter'
+
+type AppState = 'idle' | 'scanned' | 'converting' | 'complete'
+
 export default function Home() {
+  const [state, setState] = useState<AppState>('idle')
+  const [scanData, setScanData] = useState<any>(null)
+  const [conversionData, setConversionData] = useState<any>(null)
+  const [selectedPath, setSelectedPath] = useState('')
+  
+  const { scan, convert, isLoading, error } = useConverter()
+
+  const handlePathSelected = async (path: string) => {
+    setSelectedPath(path)
+    const results = await scan(path)
+    
+    if (results) {
+      setScanData(results)
+      setState('scanned')
+    }
+  }
+
+  const handleStartConversion = async () => {
+    if (!scanData) return
+    
+    setState('converting')
+    
+    // Get files that need conversion
+    const filesToConvert = scanData.files
+      .filter((f: any) => !f.already_converted)
+      .map((f: any) => f.path)
+    
+    // Determine output directory
+    const outputDir = `${selectedPath}/converted`
+    
+    const results = await convert(filesToConvert, outputDir)
+    
+    if (results) {
+      setConversionData(results)
+      setState('complete')
+    }
+  }
+
+  const handleReset = () => {
+    setState('idle')
+    setScanData(null)
+    setConversionData(null)
+    setSelectedPath('')
+  }
+
   return (
     <main className="min-h-screen relative overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Background Gradient Spotlights */}
@@ -9,7 +64,6 @@ export default function Home() {
       <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Logo Icon */}
             <img 
               src="/logo.png" 
               alt="TrueVine Insights Logo" 
@@ -26,50 +80,57 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        {/* Welcome Card */}
-        <div className="glass-card bg-[var(--card-bg)] border border-white/5 rounded-[24px] shadow-2xl p-12 mb-8 relative overflow-hidden group">
-          {/* Decorative Teal Line */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#018488] to-transparent opacity-50"></div>
-          
-          <h2 className="font-display text-5xl font-bold mb-6 leading-tight">
-            Professional <br/>
-            RAW Converter
-          </h2>
-          <p className="text-xl text-[var(--secondary-text)] mb-8 max-w-2xl font-light">
-            High-performance ARW to JPEG conversion engine designed for zero-compromise metadata preservation.
-          </p>
-          
-          {/* Status Badge */}
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-[#018488]/10 border border-[#018488]/20 rounded-full backdrop-blur-sm">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#018488] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#018488]"></span>
-            </span>
-            <span className="text-sm font-semibold text-[#018488] tracking-wide uppercase text-[11px]">
-              System Ready
-            </span>
+      <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+        {/* Error Display */}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-red-500 font-semibold">Error: {error}</p>
           </div>
-        </div>
+        )}
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { title: "Fast Processing", desc: "Multi-threaded engine for batch conversion." },
-            { title: "EXIF Preserved", desc: "1:1 Metadata transfer for professional workflows." },
-            { title: "NAS Optimized", desc: "Atomic writes prevent data corruption on network drives." }
-          ].map((feature, i) => (
-            <div key={i} className="glass-card bg-[var(--card-bg)] border border-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors duration-300">
-              <div className="w-10 h-1 bg-[#018488] mb-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <h3 className="font-display text-xl font-bold mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-[var(--secondary-text)] leading-relaxed">
-                {feature.desc}
-              </p>
-            </div>
-          ))}
-        </div>
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="p-4 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-lg">
+            <p className="text-[var(--accent)] font-semibold">Processing...</p>
+          </div>
+        )}
+
+        {/* Step 1: Folder Selection */}
+        {state === 'idle' && (
+          <FolderPicker onPathSelected={handlePathSelected} />
+        )}
+
+        {/* Step 2: Scan Results */}
+        {state === 'scanned' && scanData && (
+          <ScanResults
+            totalFiles={scanData.total_files}
+            alreadyConverted={scanData.already_converted}
+            pendingConversion={scanData.pending_conversion}
+            totalSizeMb={scanData.total_size_mb}
+            onStartConversion={handleStartConversion}
+            isConverting={false}
+          />
+        )}
+
+        {/* Step 3: Conversion Progress */}
+        {(state === 'converting' || state === 'complete') && conversionData && (
+          <ConversionDashboard
+            successful={conversionData.successful}
+            failed={conversionData.failed}
+            total={conversionData.total}
+            isComplete={state === 'complete'}
+          />
+        )}
+
+        {/* Reset Button */}
+        {state !== 'idle' && (
+          <button
+            onClick={handleReset}
+            className="w-full px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Start New Conversion
+          </button>
+        )}
 
         {/* Footer Link */}
         <div className="mt-16 text-center">
@@ -85,5 +146,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-  );
+  )
 }
