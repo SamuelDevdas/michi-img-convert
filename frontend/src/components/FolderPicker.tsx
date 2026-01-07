@@ -83,11 +83,7 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-white/5 rounded-lg">
-          <p className="text-xs text-[var(--secondary-text)]">
-            <strong>Tip:</strong> For NAS volumes, use paths like <code className="px-1 py-0.5 bg-white/10 rounded">/Volumes/YourNAS/Photos</code>
-          </p>
-        </div>
+
       </div>
 
       <FolderBrowserModal
