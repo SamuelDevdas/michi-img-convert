@@ -113,18 +113,25 @@ async def browse_directory(path: str = ""):
 
         # Get subdirectories only (not files)
         directories = []
+
+        # safely iterate
         try:
-            for item in sorted(target.iterdir()):
-                # Filter out hidden folders and focus on directories
-                if item.is_dir() and not item.name.startswith("."):
-                    directories.append(
-                        {
-                            "name": item.name,
-                            "path": str(item),
-                        }
-                    )
-        except PermissionError:
-            pass  # Skip directories we can't read
+            for item in target.iterdir():
+                try:
+                    # Filter out hidden folders and focus on directories
+                    if not item.name.startswith(".") and item.is_dir():
+                        directories.append(
+                            {
+                                "name": item.name,
+                                "path": str(item),
+                            }
+                        )
+                except (PermissionError, OSError):
+                    continue
+        except (PermissionError, OSError):
+            pass  # Entire directory is unreadable
+
+        directories.sort(key=lambda x: x["name"])
 
         # Determine parent
         parent = str(target.parent)
