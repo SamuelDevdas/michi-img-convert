@@ -1,4 +1,4 @@
-# Michi Image Converter - Workflow Commands
+# Spectrum - Workflow Commands
 
 # Default: Help
 .PHONY: help
@@ -24,7 +24,7 @@ setup:
 
 .PHONY: start
 start: setup
-	@echo "🚀 Starting Michi Image Converter..."
+	@echo "🚀 Starting Spectrum..."
 	@docker compose up --build -d
 	@echo "✅ Services started in background."
 	@echo "👉 Run 'make logs' to see output, or 'make open' to launch the app."
