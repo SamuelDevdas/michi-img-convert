@@ -70,7 +70,7 @@ python convert_arw_cli.py   --src ~/Jobs/Wedding ~/Jobs/Portraits   --dst ~/JPEG
 python convert_arw_cli.py --help
 ```
 
-```
+```text
 Batch‑convert Sony .ARW RAW files to JPEG.
 
 options:
@@ -81,13 +81,15 @@ options:
 
 ---
 
-## 📝 Project structure
+## 📝 Project structure
 
 ```
 .
-├── convert_arw_cli.py   # main CLI script
-├── convert_arw.py       # core conversion logic (used by CLI script)
-└── README.md            # project documentation
+├── convert_arw_cli.py   # CLI script (the main entry point)
+├── pyproject.toml       # project metadata & dependencies
+├── README.md            # project documentation
+├── USER_INSTRUCTIONS.md # quick-start guide for end users
+└── LICENSE              # MIT license
 ```
 
 ---

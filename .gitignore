@@ -9,4 +9,10 @@ wheels/
 # Virtual environments
 .venv
 .history
-__pycache__/
+
+# macOS
+.DS_Store
+
+# Test/sample data folders
+ARW_in/
+JPG_out/
