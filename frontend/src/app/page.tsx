@@ -74,13 +74,13 @@ export default function Home() {
             </h1>
           </div>
           <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold opacity-80">
-            Professional RAW Converter
+            Professional ARW Workflow
           </span>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-8 animate-enter">
+      <div className="max-w-3xl mx-auto px-6 py-12 pb-24 space-y-8 animate-enter">
         {/* Error Display */}
         {error && (
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg backdrop-blur-sm">
@@ -143,16 +143,19 @@ export default function Home() {
           </button>
         )}
 
-        {/* Footer Link */}
-        <div className="mt-16 text-center">
-          <a 
-            href="#" 
-            className="inline-flex items-center gap-2 text-sm text-[var(--secondary-text)] hover:text-[var(--accent)] transition-colors duration-200"
-          >
-            <span className="opacity-60">Engineered by</span>
-            <span className="font-bold tracking-wide">TrueVine Insights</span>
-          </a>
-        </div>
+      </div>
+
+      {/* Footer Link - Fixed at bottom */}
+      <div className="fixed bottom-4 left-0 right-0 text-center pointer-events-none z-50">
+        <a 
+          href="https://truevineinsights.ch" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-xs text-[var(--secondary-text)] opacity-40 hover:opacity-100 transition-all duration-300 pointer-events-auto"
+        >
+          <span className="font-light">Engineered by</span>
+          <span className="font-bold tracking-wider text-white">TrueVine Insights</span>
+        </a>
       </div>
     </main>
   )
