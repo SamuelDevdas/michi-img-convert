@@ -1,0 +1,28 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies for LibRaw/exiftool
+RUN apt-get update && apt-get install -y \
+    libexif-dev \
+    exiftool \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Install python dependencies using uv
+COPY pyproject.toml .
+RUN uv pip install --system \
+    fastapi \
+    uvicorn \
+    rawpy \
+    imageio \
+    python-multipart \
+    websockets
+
+# Copy source code
+COPY . .
+
+# Run application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
