@@ -1,105 +1,45 @@
-# ARW → JPEG Converter 📸
+# 🖼️ Michi Image Converter (v2.0)
 
+> **A professional-grade ARW to JPEG converter for high-volume photography workflows.**
 
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-
-
-Batch‑converts Sony **.ARW** (or just about any RAW format LibRaw understands) into high‑quality JPEGs with a single command.
-
----
-
-## ✨ Features
-
-* 🔍 **Recursive or flat** conversion – grab everything in a tree or just one folder.
-* 🗄️ **Multi‑source** support – convert several shoots in one run.
-* 🎨 Uses **camera white‑balance** & skips auto‑brightening for faithful colours.
-* 🏗️ Preserves the original folder structure under the output root.
-* ⚡ Fast: powered by [`rawpy`](https://github.com/letmaik/rawpy) (LibRaw) + [`imageio`](https://github.com/imageio/imageio).
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](docker-compose.yml)
 
 ---
 
-## 📦 Installation
+## 🚀 Overview
 
-### Via [uv](https://github.com/astral-sh/uv) (recommended)
+This tool is designed to solve the specific pain points of processing thousands of Sony RAW files stored on a NAS. It provides a **frictionless, local-first web interface** to manage conversions with:
+- **Zero Data Loss:** Atomic writes and robust error handling.
+- **Full Metadata Preservation:** Keeps your EXIF, GPS, and Camera settings intact.
+- **Real-time Feedback:** Live progress dashboard so you never wonder "is it frozen?".
 
-First, clone the repository:
-```bash
-git clone https://github.com/your-username/michi-img-convert.git 
-cd michi-img-convert
-```
+## 📚 Documentation
 
-Then, install dependencies:
-```bash
-uv init                 # once per project
-uv add rawpy imageio    # install dependencies
-```
+The complete project blueprint is available in the `docs/` directory:
 
-### Via plain `pip`
+- [**📘 Project Blueprint**](docs/PROJECT_BLUEPRINT.md) - Single source of truth for Requirements, UX, Architecture, and Plan.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install rawpy imageio
-```
+## 🛠️ Quick Start (Coming Soon)
 
-Clone or copy this repo and make the script executable:
+_The v2.0 Web Application is currently under active development. See [Project Blueprint](docs/PROJECT_BLUEPRINT.md) for roadmap._
 
-```bash
-chmod +x convert_arw_cli.py
-```
-
----
-
-## 🚀 Usage
-
-### Basic
-
-```bash
-python convert_arw_cli.py --src /path/to/RAW --dst /path/to/JPG
-```
-
-### Convert multiple folders & recurse into sub‑folders
-
-```bash
-python convert_arw_cli.py   --src ~/Jobs/Wedding ~/Jobs/Portraits   --dst ~/JPEGs   --recurse
-```
-
-### Help
-
+### Legacy CLI
+If you are looking for the simple command-line script, it is currently in maintenance mode.
 ```bash
 python convert_arw_cli.py --help
 ```
 
-```text
-Batch‑convert Sony .ARW RAW files to JPEG.
-
-options:
-  -s, --src ...    source folder(s)
-  -d, --dst PATH   destination root folder
-  -r, --recurse    recurse into sub‑folders
-```
-
----
-
-## 📝 Project structure
-
+## 🏗️ Project Structure
 ```
 .
-├── convert_arw_cli.py   # CLI script (the main entry point)
-├── pyproject.toml       # project metadata & dependencies
-├── README.md            # project documentation
-├── USER_INSTRUCTIONS.md # quick-start guide for end users
-└── LICENSE              # MIT license
+├── backend/            # FastAPI Server (Python)
+├── frontend/           # Next.js Client (React)
+├── docs/               # Architecture & Specifications
+├── docker-compose.yml  # Orchestration
+└── README.md           # You are here
 ```
 
 ---
-
-## 🤝 Contributing
-
-Bug reports and pull requests are welcome! Feel free to open an issue or submit a PR.
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License – see [`LICENSE`](LICENSE) for details.
+**Author:** Samuel for Michi  
+**License:** MIT
