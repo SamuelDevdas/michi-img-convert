@@ -1,4 +1,4 @@
-# 🏗️ Project Blueprint: Michi Image Converter (v2.0)
+# 🏗️ Project Blueprint: Spectrum (v2.0)
 
 **A unified guide to the requirements, design, architecture, and implementation plan.**
 
