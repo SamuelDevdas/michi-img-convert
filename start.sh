@@ -1,7 +1,7 @@
 #!/bin/bash
-# Helper script to start Michi Image Converter
+# Helper script to start Spectrum
 
-echo "🖼️  Starting Michi Image Converter..."
+echo "🖼️  Starting Spectrum..."
 echo ""
 
 # Check if Docker is running

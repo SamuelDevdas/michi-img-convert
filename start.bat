@@ -1,7 +1,7 @@
 @echo off
-REM Helper script to start Michi Image Converter on Windows
+REM Helper script to start Spectrum on Windows
 
-echo 🖼️  Starting Michi Image Converter...
+echo 🖼️  Starting Spectrum...
 echo.
 
 REM Check if Docker is running (basic check)
