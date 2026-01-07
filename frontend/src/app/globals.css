@@ -5,31 +5,26 @@
 @tailwind utilities;
 
 :root {
-  --background: #0E0E0E; /* Deep Matte Charcoal - Forced Dark Mode */
-  --foreground: #FFFFFF; /* Pure White */
-  --accent: #018488; /* Brand Teal */
-  --accent-hover: #026F73;
-  --secondary-text: #A0A0A0; /* Light Gray for readability */
-  --card-bg: rgba(255, 255, 255, 0.05); /* 5% White Overlay */
+  --background: #050505; /* Deeper Black */
+  --foreground: #F2F2F2; /* Soft White */
+  --accent: #06B6D4; /* Cyan 500 - Brighter Teal */
+  --accent-hover: #0891B2; /* Cyan 600 */
+  --secondary-text: #94A3B8; /* Slate 400 */
+  --card-bg: rgba(255, 255, 255, 0.03); 
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
 }
-
-/* Light mode block removed to enforce dark mode only */
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-height: 100vh;
-}
-
-/* Unique Blue Glow Effect from TrueVine Insights */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(0, 100, 255, 0.08) 100%);
-  z-index: 9999;
+  /* Subtle ambient gradient */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 25%);
+  background-attachment: fixed;
 }
 
 @layer utilities {
@@ -39,8 +34,41 @@ body::before {
   .font-display {
     font-family: 'Playfair Display', serif;
   }
-  .glass-card {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  
+  /* Premium Glass Effect */
+  .glass-panel {
+    background: rgba(13, 13, 13, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 
+      0 0 0 1px var(--glass-highlight) inset,
+      0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Input Field Polish */
+  .premium-input {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+  }
+  .premium-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    outline: none;
+  }
+
+  /* Animations */
+  .animate-enter {
+    animation: enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  
+  @keyframes enter {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

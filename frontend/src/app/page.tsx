@@ -57,91 +57,100 @@ export default function Home() {
   return (
     <main className="min-h-screen relative overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Background Gradient Spotlights */}
-      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-[#018488]/20 rounded-full blur-[120px] -z-10 opacity-30"></div>
+      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] -z-10 opacity-30"></div>
       <div className="fixed bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] -z-10 opacity-30"></div>
 
       {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-black/20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
               src="/logo.png" 
               alt="TrueVine Insights Logo" 
-              className="w-24 h-24 object-contain"
+              className="w-20 h-20 object-contain drop-shadow-2xl"
             />
-            <h1 className="font-display text-2xl font-bold tracking-tight">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[var(--secondary-text)]">
               Spectrum
             </h1>
           </div>
-          <span className="text-sm text-[var(--secondary-text)] font-medium">
-            by TrueVine Insights
+          <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold opacity-80">
+            Professional RAW Converter
           </span>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+      <div className="max-w-3xl mx-auto px-6 py-12 space-y-8 animate-enter">
         {/* Error Display */}
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-red-500 font-semibold">Error: {error}</p>
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg backdrop-blur-sm">
+            <p className="text-red-400 font-semibold flex items-center gap-2">
+              <span className="text-xl">⚠️</span> {error}
+            </p>
           </div>
         )}
 
         {/* Loading Overlay */}
         {isLoading && (
-          <div className="p-4 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-lg">
-            <p className="text-[var(--accent)] font-semibold">Processing...</p>
+          <div className="p-4 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-lg animate-pulse">
+            <p className="text-[var(--accent)] font-semibold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-ping"></span>
+              Processing...
+            </p>
           </div>
         )}
 
-        {/* Step 1: Folder Selection */}
-        {state === 'idle' && (
-          <FolderPicker onPathSelected={handlePathSelected} />
-        )}
+        {/* glass-panel wrapper for main interactive area */}
+        <div className="glass-panel rounded-2xl p-1 shadow-2xl">
+            <div className="bg-black/40 rounded-xl p-8 border border-white/5">
+                {/* Step 1: Folder Selection */}
+                {state === 'idle' && (
+                <FolderPicker onPathSelected={handlePathSelected} />
+                )}
 
-        {/* Step 2: Scan Results */}
-        {state === 'scanned' && scanData && (
-          <ScanResults
-            totalFiles={scanData.total_files}
-            alreadyConverted={scanData.already_converted}
-            pendingConversion={scanData.pending_conversion}
-            totalSizeMb={scanData.total_size_mb}
-            onStartConversion={handleStartConversion}
-            isConverting={false}
-          />
-        )}
+                {/* Step 2: Scan Results */}
+                {state === 'scanned' && scanData && (
+                <ScanResults
+                    totalFiles={scanData.total_files}
+                    alreadyConverted={scanData.already_converted}
+                    pendingConversion={scanData.pending_conversion}
+                    totalSizeMb={scanData.total_size_mb}
+                    onStartConversion={handleStartConversion}
+                    isConverting={false}
+                />
+                )}
 
-        {/* Step 3: Conversion Progress */}
-        {(state === 'converting' || state === 'complete') && conversionData && (
-          <ConversionDashboard
-            successful={conversionData.successful}
-            failed={conversionData.failed}
-            total={conversionData.total}
-            isComplete={state === 'complete'}
-          />
-        )}
+                {/* Step 3: Conversion Progress */}
+                {(state === 'converting' || state === 'complete') && conversionData && (
+                <ConversionDashboard
+                    successful={conversionData.successful}
+                    failed={conversionData.failed}
+                    total={conversionData.total}
+                    isComplete={state === 'complete'}
+                />
+                )}
+            </div>
+        </div>
 
         {/* Reset Button */}
         {state !== 'idle' && (
           <button
             onClick={handleReset}
-            className="w-full px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-lg transition-colors duration-200"
+            className="w-full px-6 py-4 bg-white/5 hover:bg-white/10 hover:border-white/20 border border-white/10 text-[var(--secondary-text)] hover:text-white font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group"
           >
-            Start New Conversion
+            <span>Start New Conversion</span>
+            <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </button>
         )}
 
         {/* Footer Link */}
         <div className="mt-16 text-center">
           <a 
-            href="https://truevineinsights.ch" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-[var(--secondary-text)] hover:text-[#018488] transition-colors duration-200"
+            href="#" 
+            className="inline-flex items-center gap-2 text-sm text-[var(--secondary-text)] hover:text-[var(--accent)] transition-colors duration-200"
           >
-            <span>Powered by</span>
-            <span className="font-bold text-white tracking-wide">TrueVine Insights</span>
+            <span className="opacity-60">Engineered by</span>
+            <span className="font-bold tracking-wide">TrueVine Insights</span>
           </a>
         </div>
       </div>
