@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Michi Image Converter API", version="2.0.0")
+app = FastAPI(
+    title="Spectrum API",
+    version="2.0.0",
+    description="Professional RAW image conversion API by TrueVine Insights",
+)
 
 # CORS setup for Frontend
 app.add_middleware(
@@ -15,7 +19,13 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"status": "System Ready", "message": "Michi Image Converter Backend v2.0"}
+    return {
+        "name": "Spectrum API",
+        "version": "2.0.0",
+        "status": "Ready",
+        "message": "Professional RAW image converter by TrueVine Insights",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")

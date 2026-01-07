@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Michi Image Converter",
-  description: "Professional ARW to JPEG conversion tool",
+  title: "Spectrum | Professional RAW Converter",
+  description: "High-performance ARW to JPEG conversion tool by TrueVine Insights",
 };
 
 export default function RootLayout({
