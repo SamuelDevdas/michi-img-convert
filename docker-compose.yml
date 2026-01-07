@@ -8,7 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app
-      - /Volumes:/Volumes:ro # Mount host volumes for converting
+      - /Volumes:/Volumes      # External Drives (Read/Write)
+      - /Users:/Users          # User Home (Read/Write)
       # For Windows, we might need a different mount strategy later
     environment:
       - ENVIRONMENT=development

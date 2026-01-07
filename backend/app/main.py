@@ -83,6 +83,66 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/api/browse")
+async def browse_directory(path: str = ""):
+    """
+    Browse filesystem directories.
+
+    Returns list of subdirectories for folder picker navigation.
+    Handles "Smart Roots" to show relevant starting points.
+    """
+    try:
+        # Smart Root: If path is empty, show top-level folders we care about
+        if not path or path == "/":
+            return {
+                "current": "/",
+                "parent": None,
+                "directories": [
+                    {"name": "Users (Home)", "path": "/Users"},
+                    {"name": "Volumes (Drives)", "path": "/Volumes"},
+                ],
+            }
+
+        target = Path(path)
+
+        if not target.exists():
+            raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+
+        if not target.is_dir():
+            raise HTTPException(status_code=400, detail=f"Not a directory: {path}")
+
+        # Get subdirectories only (not files)
+        directories = []
+        try:
+            for item in sorted(target.iterdir()):
+                # Filter out hidden folders and focus on directories
+                if item.is_dir() and not item.name.startswith("."):
+                    directories.append(
+                        {
+                            "name": item.name,
+                            "path": str(item),
+                        }
+                    )
+        except PermissionError:
+            pass  # Skip directories we can't read
+
+        # Determine parent
+        parent = str(target.parent)
+        if parent == str(target):  # We are at root of a mount
+            parent = "/"
+
+        return {
+            "current": str(target),
+            "parent": parent,
+            "directories": directories,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Browse error: {str(e)}")
+
+
 @app.post("/api/scan", response_model=ScanResponse)
 async def scan_directory(request: ScanRequest):
     """
