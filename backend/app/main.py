@@ -111,6 +111,14 @@ async def browse_directory(path: str = ""):
         target = resolved.path
 
         if not target.exists():
+            if resolved.is_unc:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"UNC paths are not accessible: {resolved.original}. "
+                        "Please map the network share to a drive letter (e.g., Z:) and try again."
+                    ),
+                )
             if resolved.was_windows:
                 raise HTTPException(
                     status_code=404,
@@ -175,6 +183,14 @@ async def scan_directory(request: ScanRequest):
         # Scan directory
         resolved = resolve_path(request.path)
         if not resolved.path.exists():
+            if resolved.is_unc:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"UNC paths are not accessible: {resolved.original}. "
+                        "Please map the network share to a drive letter (e.g., Z:) and try again."
+                    ),
+                )
             if resolved.was_windows:
                 raise HTTPException(
                     status_code=404,

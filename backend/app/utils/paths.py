@@ -4,6 +4,7 @@ Path utilities for handling Windows-style paths inside Linux containers.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,7 @@ class ResolvedPath:
     original: str
     path: Path
     was_windows: bool
+    is_unc: bool
     candidates: List[Path]
 
 
@@ -59,9 +61,15 @@ def windows_candidate_paths(path: str) -> List[Path]:
     drive, rest = split_windows_path(normalized)
     candidates: List[Path] = []
 
+    volumes_drive = get_volumes_drive_letter()
+
     for base in (Path("/host_mnt"), Path("/mnt")):
         base_path = base / drive
         candidates.append(base_path / rest if rest else base_path)
+
+    if volumes_drive and volumes_drive == drive:
+        volume_root = Path("/Volumes")
+        candidates.append(volume_root / rest if rest else volume_root)
 
     drive_root = Path(f"/{drive}")
     candidates.append(drive_root / rest if rest else drive_root)
@@ -86,13 +94,16 @@ def resolve_path(path: str) -> ResolvedPath:
     normalized = normalize_input_path(path)
 
     if not normalized:
-        return ResolvedPath(original="", path=Path("."), was_windows=False, candidates=[])
+        return ResolvedPath(
+            original="", path=Path("."), was_windows=False, is_unc=False, candidates=[]
+        )
 
     if UNC_PATH_RE.match(normalized):
         return ResolvedPath(
             original=normalized,
             path=Path(normalized),
             was_windows=True,
+            is_unc=True,
             candidates=[],
         )
 
@@ -104,6 +115,7 @@ def resolve_path(path: str) -> ResolvedPath:
                     original=normalized,
                     path=candidate,
                     was_windows=True,
+                    is_unc=False,
                     candidates=candidates,
                 )
         if candidates:
@@ -111,12 +123,14 @@ def resolve_path(path: str) -> ResolvedPath:
                 original=normalized,
                 path=candidates[0],
                 was_windows=True,
+                is_unc=False,
                 candidates=candidates,
             )
         return ResolvedPath(
             original=normalized,
             path=Path(normalized),
             was_windows=True,
+            is_unc=False,
             candidates=[],
         )
 
@@ -124,8 +138,19 @@ def resolve_path(path: str) -> ResolvedPath:
         original=normalized,
         path=Path(normalized),
         was_windows=False,
+        is_unc=False,
         candidates=[],
     )
+
+
+def get_volumes_drive_letter() -> str | None:
+    value = os.getenv("SPECTRUM_VOLUMES_DRIVE", "").strip()
+    if not value:
+        return None
+    letter = value[0].lower()
+    if not letter.isalpha():
+        return None
+    return letter
 
 
 def detect_windows_drive_mounts() -> Dict[str, Path]:

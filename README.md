@@ -85,7 +85,23 @@ The app needs access to your photos directory via Docker mounts.
 - If your photos are on another drive, edit `start.bat`:
   - `set SPECTRUM_USERS_MOUNT=C:\Users`
   - `set SPECTRUM_VOLUMES_MOUNT=D:\`
+  - `set SPECTRUM_VOLUMES_DRIVE=D`
 - Make sure the drive is shared in Docker Desktop settings.
+
+### 4. NAS / Synology Shares (Windows)
+If your photos live on a network share (e.g., `\\NAS\Photos`), map it to a drive letter first:
+```powershell
+net use Z: \\NAS\Photos /persistent:yes
+```
+Then update `start.bat`:
+- `set SPECTRUM_VOLUMES_MOUNT=Z:\`
+- `set SPECTRUM_VOLUMES_DRIVE=Z`
+
+If `Z:` is not mapped, Windows cannot access it and the app will show "Path not found".
+
+### 5. Seamless UX Tips (Windows)
+- You can paste paths with quotes; the app will trim them automatically.
+- UNC paths (`\\server\share`) are detected and blocked with a clear prompt to map a drive.
 
 ### Phase 3: Usage Workflow
 

@@ -19,6 +19,7 @@ echo.
 REM Windows volume mounts for Docker (edit if your photos are on another drive)
 set SPECTRUM_USERS_MOUNT=C:\Users
 set SPECTRUM_VOLUMES_MOUNT=C:\
+set SPECTRUM_VOLUMES_DRIVE=C
 
 docker compose up --build
 

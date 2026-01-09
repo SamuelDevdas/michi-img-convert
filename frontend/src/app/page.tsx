@@ -87,6 +87,11 @@ export default function Home() {
             <p className="text-red-400 font-semibold flex items-center gap-2">
               <span className="text-xl">⚠️</span> {error}
             </p>
+            {error.toLowerCase().includes('unc paths') && (
+              <p className="text-xs text-red-300 mt-2">
+                Tip: Map the share to a drive letter in Windows (e.g., Z:) and use that path instead.
+              </p>
+            )}
           </div>
         )}
 

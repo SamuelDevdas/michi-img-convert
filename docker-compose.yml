@@ -12,6 +12,7 @@ services:
       - "${SPECTRUM_USERS_MOUNT:-/Users}:/Users"        # User Home (Read/Write)
     environment:
       - ENVIRONMENT=development
+      - SPECTRUM_VOLUMES_DRIVE=${SPECTRUM_VOLUMES_DRIVE:-}
     restart: unless-stopped
 
   frontend:
