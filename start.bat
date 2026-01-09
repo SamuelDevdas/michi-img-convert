@@ -16,6 +16,10 @@ echo ✅ Docker is running
 echo 🚀 Starting services with docker compose...
 echo.
 
+REM Windows volume mounts for Docker (edit if your photos are on another drive)
+set SPECTRUM_USERS_MOUNT=C:\Users
+set SPECTRUM_VOLUMES_MOUNT=C:\
+
 docker compose up --build
 
 REM Open browser after delay (optional)

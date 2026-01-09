@@ -13,6 +13,7 @@ from pathlib import Path
 from app.services.scanner import ScannerService, FileInfo
 from app.services.converter import ConverterService
 from app.services.exif import ExifService
+from app.utils.paths import resolve_path, get_smart_roots, is_drive_mount_root
 
 app = FastAPI(
     title="Spectrum API",
@@ -97,15 +98,22 @@ async def browse_directory(path: str = ""):
             return {
                 "current": "/",
                 "parent": None,
-                "directories": [
-                    {"name": "Users (Home)", "path": "/Users"},
-                    {"name": "Volumes (Drives)", "path": "/Volumes"},
-                ],
+                "directories": get_smart_roots(),
             }
 
-        target = Path(path)
+        resolved = resolve_path(path)
+        target = resolved.path
 
         if not target.exists():
+            if resolved.was_windows:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"Path not found: {path}. "
+                        "Windows paths must be shared with Docker. "
+                        "Try using the Browse button or share the drive in Docker Desktop."
+                    ),
+                )
             raise HTTPException(status_code=404, detail=f"Path not found: {path}")
 
         if not target.is_dir():
@@ -135,7 +143,7 @@ async def browse_directory(path: str = ""):
 
         # Determine parent
         parent = str(target.parent)
-        if parent == str(target):  # We are at root of a mount
+        if parent == str(target) or is_drive_mount_root(target):
             parent = "/"
 
         return {
@@ -159,8 +167,20 @@ async def scan_directory(request: ScanRequest):
     """
     try:
         # Scan directory
+        resolved = resolve_path(request.path)
+        if not resolved.path.exists():
+            if resolved.was_windows:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"Directory not found: {request.path}. "
+                        "Windows paths must be shared with Docker (e.g., C:\\Users)."
+                    ),
+                )
+            raise HTTPException(status_code=404, detail=f"Directory not found: {request.path}")
+
         files = await scanner_service.scan_directory(
-            path=request.path,
+            path=str(resolved.path),
             recursive=request.recursive,
             output_subdir=request.output_subdir,
         )
@@ -202,10 +222,21 @@ async def convert_files(request: ConvertRequest):
         successful = 0
         failed = 0
 
-        output_dir = Path(request.output_dir)
+        resolved_output = resolve_path(request.output_dir)
+        if resolved_output.was_windows and not resolved_output.path.parent.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Output path not accessible: {request.output_dir}. "
+                    "Share the drive in Docker Desktop or choose a folder under a shared path."
+                ),
+            )
+
+        output_dir = resolved_output.path
 
         for file_path in request.files:
-            src = Path(file_path)
+            resolved_file = resolve_path(file_path)
+            src = resolved_file.path
 
             # Determine output path (maintain directory structure)
             dst = output_dir / src.with_suffix(".jpg").name

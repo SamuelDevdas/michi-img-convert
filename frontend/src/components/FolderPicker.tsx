@@ -53,7 +53,7 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
                   setPath(e.target.value)
                   setIsValid(true)
                 }}
-                placeholder="/Volumes/Photos/2024"
+                placeholder="e.g. /Users/username/Photos or C:\\Users\\username\\Photos"
                 className={`flex-1 px-5 py-4 premium-input rounded-xl focus:outline-none transition-all font-mono text-sm ${
                   isValid ? 'border-white/10' : 'border-red-500/50 focus:border-red-500'
                 }`}
@@ -98,4 +98,3 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
     </>
   )
 }
-

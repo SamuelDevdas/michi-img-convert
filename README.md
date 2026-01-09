@@ -64,6 +64,29 @@ make open
 ```
 This will launch Chrome/Safari to `http://localhost:3000`.
 
+---
+
+## 🪟 Windows Client Setup
+
+This section is for Windows machines using Docker Desktop.
+
+### 1. Install Docker Desktop
+Download **Docker Desktop for Windows** from docker.com and make sure the engine is running.
+
+### 2. Start the App
+Open **Command Prompt** and run:
+```bat
+start.bat
+```
+
+### 3. Ensure Drive Sharing
+The app needs access to your photos directory via Docker mounts.
+- Default mounts: `C:\Users` (as `/Users`) and `C:\` (as `/Volumes`).
+- If your photos are on another drive, edit `start.bat`:
+  - `set SPECTRUM_USERS_MOUNT=C:\Users`
+  - `set SPECTRUM_VOLUMES_MOUNT=D:\`
+- Make sure the drive is shared in Docker Desktop settings.
+
 ### Phase 3: Usage Workflow
 
 Now you are ready to convert files.
