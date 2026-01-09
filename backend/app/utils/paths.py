@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Dict
 
 WINDOWS_PATH_RE = re.compile(r"^[a-zA-Z]:([/\\\\]|$)")
+UNC_PATH_RE = re.compile(r"^\\\\[^\\\\]+\\\\[^\\\\]+")
 
 
 @dataclass(frozen=True)
@@ -20,15 +21,29 @@ class ResolvedPath:
     candidates: List[Path]
 
 
+def normalize_input_path(path: str | None) -> str:
+    if not path:
+        return ""
+    cleaned = path.strip()
+    if len(cleaned) >= 2:
+        if (cleaned.startswith('"') and cleaned.endswith('"')) or (
+            cleaned.startswith("'") and cleaned.endswith("'")
+        ):
+            cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
 def is_windows_path(path: str) -> bool:
     if not path:
         return False
-    return bool(WINDOWS_PATH_RE.match(path))
+    normalized = normalize_input_path(path)
+    return bool(WINDOWS_PATH_RE.match(normalized) or UNC_PATH_RE.match(normalized))
 
 
 def split_windows_path(path: str) -> tuple[str, str]:
-    drive = path[0].lower()
-    rest = path[2:] if len(path) > 2 else ""
+    normalized = normalize_input_path(path)
+    drive = normalized[0].lower()
+    rest = normalized[2:] if len(normalized) > 2 else ""
     rest = rest.lstrip("\\/").replace("\\", "/")
     return drive, rest
 
@@ -36,8 +51,12 @@ def split_windows_path(path: str) -> tuple[str, str]:
 def windows_candidate_paths(path: str) -> List[Path]:
     if not is_windows_path(path):
         return []
+    normalized = normalize_input_path(path)
 
-    drive, rest = split_windows_path(path)
+    if UNC_PATH_RE.match(normalized):
+        return []
+
+    drive, rest = split_windows_path(normalized)
     candidates: List[Path] = []
 
     for base in (Path("/host_mnt"), Path("/mnt")):
@@ -64,16 +83,49 @@ def windows_candidate_paths(path: str) -> List[Path]:
 
 
 def resolve_path(path: str) -> ResolvedPath:
-    if is_windows_path(path):
-        candidates = windows_candidate_paths(path)
+    normalized = normalize_input_path(path)
+
+    if not normalized:
+        return ResolvedPath(original="", path=Path("."), was_windows=False, candidates=[])
+
+    if UNC_PATH_RE.match(normalized):
+        return ResolvedPath(
+            original=normalized,
+            path=Path(normalized),
+            was_windows=True,
+            candidates=[],
+        )
+
+    if is_windows_path(normalized):
+        candidates = windows_candidate_paths(normalized)
         for candidate in candidates:
             if candidate.exists():
-                return ResolvedPath(original=path, path=candidate, was_windows=True, candidates=candidates)
+                return ResolvedPath(
+                    original=normalized,
+                    path=candidate,
+                    was_windows=True,
+                    candidates=candidates,
+                )
         if candidates:
-            return ResolvedPath(original=path, path=candidates[0], was_windows=True, candidates=candidates)
-        return ResolvedPath(original=path, path=Path(path), was_windows=True, candidates=[])
+            return ResolvedPath(
+                original=normalized,
+                path=candidates[0],
+                was_windows=True,
+                candidates=candidates,
+            )
+        return ResolvedPath(
+            original=normalized,
+            path=Path(normalized),
+            was_windows=True,
+            candidates=[],
+        )
 
-    return ResolvedPath(original=path, path=Path(path), was_windows=False, candidates=[])
+    return ResolvedPath(
+        original=normalized,
+        path=Path(normalized),
+        was_windows=False,
+        candidates=[],
+    )
 
 
 def detect_windows_drive_mounts() -> Dict[str, Path]:

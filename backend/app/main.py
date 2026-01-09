@@ -8,12 +8,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+import os
 from pathlib import Path
 
 from app.services.scanner import ScannerService, FileInfo
 from app.services.converter import ConverterService
 from app.services.exif import ExifService
-from app.utils.paths import resolve_path, get_smart_roots, is_drive_mount_root
+from app.utils.paths import (
+    resolve_path,
+    get_smart_roots,
+    is_drive_mount_root,
+    normalize_input_path,
+)
 
 app = FastAPI(
     title="Spectrum API",
@@ -109,12 +115,12 @@ async def browse_directory(path: str = ""):
                 raise HTTPException(
                     status_code=404,
                     detail=(
-                        f"Path not found: {path}. "
+                        f"Path not found: {resolved.original}. "
                         "Windows paths must be shared with Docker. "
                         "Try using the Browse button or share the drive in Docker Desktop."
                     ),
                 )
-            raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+            raise HTTPException(status_code=404, detail=f"Path not found: {resolved.original}")
 
         if not target.is_dir():
             raise HTTPException(status_code=400, detail=f"Not a directory: {path}")
@@ -173,11 +179,11 @@ async def scan_directory(request: ScanRequest):
                 raise HTTPException(
                     status_code=404,
                     detail=(
-                        f"Directory not found: {request.path}. "
+                        f"Directory not found: {resolved.original}. "
                         "Windows paths must be shared with Docker (e.g., C:\\Users)."
                     ),
                 )
-            raise HTTPException(status_code=404, detail=f"Directory not found: {request.path}")
+            raise HTTPException(status_code=404, detail=f"Directory not found: {resolved.original}")
 
         files = await scanner_service.scan_directory(
             path=str(resolved.path),
@@ -222,21 +228,65 @@ async def convert_files(request: ConvertRequest):
         successful = 0
         failed = 0
 
-        resolved_output = resolve_path(request.output_dir)
-        if resolved_output.was_windows and not resolved_output.path.parent.exists():
+        # Resolve input files first to support fallback output dir selection
+        resolved_files = [resolve_path(p) for p in request.files]
+        existing_files = [rf.path for rf in resolved_files if rf.path.exists()]
+        missing_files = [rf.original for rf in resolved_files if not rf.path.exists()]
+
+        if not existing_files:
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    f"Output path not accessible: {request.output_dir}. "
-                    "Share the drive in Docker Desktop or choose a folder under a shared path."
-                ),
+                detail="No input files are accessible. Share the drive in Docker Desktop or choose a folder under a shared path.",
             )
 
+        resolved_output = resolve_path(request.output_dir)
         output_dir = resolved_output.path
 
-        for file_path in request.files:
-            resolved_file = resolve_path(file_path)
-            src = resolved_file.path
+        # Allow creating the output directory if its parent exists. If not, try a safe fallback.
+        if not output_dir.exists() and not output_dir.parent.exists():
+            try:
+                common_root = Path(os.path.commonpath([str(p) for p in existing_files]))
+            except ValueError:
+                common_root = None
+
+            if common_root:
+                if common_root.exists() and common_root.is_file():
+                    common_root = common_root.parent
+                # Avoid falling back to filesystem root or drive roots
+                if (
+                    str(common_root) not in {"/", "."}
+                    and not is_drive_mount_root(common_root)
+                    and common_root.exists()
+                    and common_root.is_dir()
+                ):
+                    output_dir = common_root / "converted"
+                else:
+                    common_root = None
+
+            if not output_dir.exists() and not output_dir.parent.exists():
+                detail_path = resolved_output.original or normalize_input_path(request.output_dir)
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"Output path not accessible: {detail_path}. "
+                        "Share the drive in Docker Desktop or choose a folder under a shared path."
+                    ),
+                )
+
+        for missing in missing_files:
+            results.append(
+                {
+                    "src": missing,
+                    "dst": str(output_dir),
+                    "success": False,
+                    "error": "File not accessible: ensure the drive is shared with Docker.",
+                    "size_bytes": None,
+                }
+            )
+            failed += 1
+
+        for file_path in existing_files:
+            src = file_path
 
             # Determine output path (maintain directory structure)
             dst = output_dir / src.with_suffix(".jpg").name
