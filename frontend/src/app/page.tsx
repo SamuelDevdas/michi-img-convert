@@ -13,8 +13,9 @@ export default function Home() {
   const [scanData, setScanData] = useState<any>(null)
   const [conversionData, setConversionData] = useState<any>(null)
   const [selectedPath, setSelectedPath] = useState('')
+  const [preset, setPreset] = useState('standard')
   
-  const { scan, convert, isLoading, error } = useConverter()
+  const { scan, convertWithProgress, isLoading, error } = useConverter()
 
   const handlePathSelected = async (path: string) => {
     setSelectedPath(path)
@@ -38,11 +39,40 @@ export default function Home() {
     
     // Determine output directory
     const outputDir = `${selectedPath}/converted`
-    
-    const results = await convert(filesToConvert, outputDir)
-    
+
+    setConversionData({
+      total: filesToConvert.length,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0
+    })
+
+    const results = await convertWithProgress(
+      filesToConvert,
+      outputDir,
+      (update) => {
+        setConversionData((prev: any) => ({
+          ...prev,
+          processed: update.processed,
+          successful: update.successful,
+          failed: update.failed,
+          skipped: update.skipped,
+          total: update.total
+        }))
+      },
+      100,
+      preset
+    )
+
     if (results) {
-      setConversionData(results)
+      setConversionData((prev: any) => ({
+        ...prev,
+        total: results.total,
+        successful: results.successful,
+        failed: results.failed,
+        skipped: results.skipped
+      }))
       setState('complete')
     }
   }
@@ -121,7 +151,9 @@ export default function Home() {
                     pendingConversion={scanData.pending_conversion}
                     totalSizeMb={scanData.total_size_mb}
                     onStartConversion={handleStartConversion}
-                    isConverting={false}
+                    isConverting={state === 'converting'}
+                    preset={preset}
+                    onPresetChange={setPreset}
                 />
                 )}
 
@@ -130,6 +162,8 @@ export default function Home() {
                 <ConversionDashboard
                     successful={conversionData.successful}
                     failed={conversionData.failed}
+                    skipped={conversionData.skipped}
+                    processed={conversionData.processed}
                     total={conversionData.total}
                     isComplete={state === 'complete'}
                 />

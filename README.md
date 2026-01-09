@@ -12,6 +12,8 @@
 This tool is designed to solve the specific pain points of processing thousands of Sony RAW files stored on a NAS. It provides a **frictionless, local-first web interface** to manage conversions with:
 - **Zero Data Loss:** Atomic writes and robust error handling.
 - **Full Metadata Preservation:** Keeps your EXIF, GPS, and Camera settings intact.
+- **Maximum Quality:** JPEG quality 100, full resolution (no resize), gentle sharpening.
+- **Pro Presets:** Neutral, Standard, Vivid, and Clean ISO looks.
 - **Real-time Feedback:** Live progress dashboard so you never wonder "is it frozen?".
 
 ## 📚 Documentation
@@ -133,6 +135,16 @@ The project includes a `Makefile` to make common tasks frictionless.
 - `make restart`: Restart the environment.
 - `make clean`: Clean up all containers and artifacts.
 - `make stop`: Shut down the containers cleanly.
+
+### Quality Tuning (Optional)
+You can fine-tune conversion behavior with environment variables:
+- `SPECTRUM_JPEG_QUALITY` (default: 100)
+- `SPECTRUM_SHARPEN` (1 to enable, 0 to disable)
+- `SPECTRUM_SHARPEN_RADIUS` (default: 1.2)
+- `SPECTRUM_SHARPEN_PERCENT` (default: 120)
+- `SPECTRUM_SHARPEN_THRESHOLD` (default: 3)
+- `SPECTRUM_AUTO_BRIGHT` (1 to enable, 0 to disable)
+- `SPECTRUM_PRESET` (neutral | standard | vivid | clean)
 
 ## 🏗️ Project Structure
 ```

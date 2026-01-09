@@ -1,5 +1,7 @@
 "use client"
 
+import PresetSelector from './PresetSelector'
+
 interface ScanResultsProps {
   totalFiles: number
   alreadyConverted: number
@@ -7,6 +9,8 @@ interface ScanResultsProps {
   totalSizeMb: number
   onStartConversion: () => void
   isConverting: boolean
+  preset: string
+  onPresetChange: (preset: string) => void
 }
 
 export default function ScanResults({
@@ -15,7 +19,9 @@ export default function ScanResults({
   pendingConversion,
   totalSizeMb,
   onStartConversion,
-  isConverting
+  isConverting,
+  preset,
+  onPresetChange
 }: ScanResultsProps) {
   return (
     <div className="glass-card bg-[var(--card-bg)] border border-white/5 rounded-2xl p-8">
@@ -46,13 +52,16 @@ export default function ScanResults({
 
       {/* Action Button */}
       {pendingConversion > 0 ? (
-        <button
-          onClick={onStartConversion}
-          disabled={isConverting}
-          className="w-full px-6 py-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
-        >
-          {isConverting ? 'Converting...' : `Convert ${pendingConversion} Files`}
-        </button>
+        <div className="space-y-5">
+          <PresetSelector value={preset} onChange={onPresetChange} />
+          <button
+            onClick={onStartConversion}
+            disabled={isConverting}
+            className="w-full px-6 py-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
+          >
+            {isConverting ? 'Converting...' : `Convert ${pendingConversion} Files`}
+          </button>
+        </div>
       ) : (
         <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
           <p className="text-green-500 font-semibold">✅ All files already converted!</p>

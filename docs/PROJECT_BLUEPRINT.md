@@ -15,7 +15,7 @@
 
 ### **Functional Requirements**
 - **Core Conversion:**
-  - [x] Convert `.ARW` to JPEG (Quality: 90%).
+  - [x] Convert `.ARW` to JPEG (Quality: 100%).
   - [x] **Preserve EXIF:** Keep ALL metadata (GPS, Camera Settings, Dates).
   - [x] **Skip Existing:** Don't re-convert files if JPEG exists.
 - **File System:**

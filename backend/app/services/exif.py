@@ -8,13 +8,13 @@ camera settings, GPS data, timestamps, and other metadata.
 from pathlib import Path
 import asyncio
 import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class ExifService:
     """EXIF metadata handler using exiftool."""
 
-    async def copy_exif(self, src: Path, dst: Path) -> bool:
+    async def copy_exif(self, src: Path, dst: Path) -> Tuple[bool, Optional[str]]:
         """
         Copy EXIF metadata from source to destination asynchronously.
 
@@ -23,7 +23,7 @@ class ExifService:
             dst: Destination JPEG file to receive EXIF data
 
         Returns:
-            True if successful, False otherwise
+            (success, error_message)
         """
         try:
             # Run exiftool in subprocess
@@ -32,6 +32,8 @@ class ExifService:
                 "-TagsFromFile",
                 str(src),
                 "-all:all",  # Copy all tags
+                "-unsafe",  # Include maker notes and other non-standard tags
+                "-P",  # Preserve file times when possible
                 "-overwrite_original",  # Don't create backup
                 str(dst),
                 stdout=asyncio.subprocess.PIPE,
@@ -41,18 +43,19 @@ class ExifService:
             stdout, stderr = await process.communicate()
 
             if process.returncode == 0:
-                return True
-            else:
-                # Log error but don't fail the conversion
-                print(f"EXIF copy warning for {dst.name}: {stderr.decode()}")
-                return False
+                return True, None
+
+            error_message = stderr.decode().strip() or "Unknown exiftool error"
+            print(f"EXIF copy warning for {dst.name}: {error_message}")
+            return False, error_message
 
         except FileNotFoundError:
             print("Warning: exiftool not found. EXIF data will not be preserved.")
-            return False
+            return False, "exiftool not found"
         except Exception as e:
-            print(f"EXIF copy error for {dst.name}: {str(e)}")
-            return False
+            error_message = str(e)
+            print(f"EXIF copy error for {dst.name}: {error_message}")
+            return False, error_message
 
     async def verify_exif(self, file_path: Path) -> dict:
         """

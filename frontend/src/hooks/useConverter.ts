@@ -23,12 +23,16 @@ interface ConversionResponse {
   total: number
   successful: number
   failed: number
+  skipped: number
   results: Array<{
     src: string
     dst: string
     success: boolean
     error?: string
     size_bytes?: number
+    skipped?: boolean
+    metadata_copied?: boolean
+    metadata_error?: string | null
   }>
 }
 
@@ -66,7 +70,8 @@ export function useConverter() {
   const convert = async (
     files: string[],
     outputDir: string,
-    quality: number = 90
+    quality: number = 100,
+    preset: string = 'standard'
   ): Promise<ConversionResponse | null> => {
     setIsLoading(true)
     setError(null)
@@ -79,7 +84,8 @@ export function useConverter() {
           files,
           output_dir: outputDir,
           quality,
-          preserve_exif: true
+          preserve_exif: true,
+          preset
         })
       })
 
@@ -99,5 +105,102 @@ export function useConverter() {
     }
   }
 
-  return { scan, convert, isLoading, error }
+  const convertWithProgress = async (
+    files: string[],
+    outputDir: string,
+    onProgress: (update: {
+      processed: number
+      successful: number
+      failed: number
+      skipped: number
+      total: number
+    }) => void,
+    quality: number = 100,
+    preset: string = 'standard'
+  ): Promise<ConversionResponse | null> => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_BASE}/api/convert/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files,
+          output_dir: outputDir,
+          quality,
+          preserve_exif: true,
+          preset
+        })
+      })
+
+      if (!response.ok || !response.body) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Conversion failed')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let finalSummary: ConversionResponse | null = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          const data = JSON.parse(line)
+
+          if (data.type === 'start') {
+            onProgress({
+              processed: 0,
+              successful: 0,
+              failed: 0,
+              skipped: 0,
+              total: data.total || files.length
+            })
+          }
+
+          if (data.type === 'progress') {
+            onProgress({
+              processed: data.processed ?? 0,
+              successful: data.successful ?? 0,
+              failed: data.failed ?? 0,
+              skipped: data.skipped ?? 0,
+              total: files.length
+            })
+          }
+
+          if (data.type === 'complete') {
+            finalSummary = {
+              total: data.total || files.length,
+              successful: data.successful ?? 0,
+              failed: data.failed ?? 0,
+              skipped: data.skipped ?? 0,
+              results: []
+            }
+          }
+
+          if (data.type === 'error') {
+            throw new Error(data.message || 'Conversion failed')
+          }
+        }
+      }
+
+      return finalSummary
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(message)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { scan, convert, convertWithProgress, isLoading, error }
 }

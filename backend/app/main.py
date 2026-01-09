@@ -4,11 +4,15 @@ Spectrum API - Professional RAW Converter by TrueVine Insights.
 FastAPI backend providing ARW to JPEG conversion services.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Callable, Awaitable
 import os
+import json
+import inspect
+import asyncio
 from pathlib import Path
 
 from app.services.scanner import ScannerService, FileInfo
@@ -60,14 +64,16 @@ class ScanResponse(BaseModel):
 class ConvertRequest(BaseModel):
     files: List[str]
     output_dir: str
-    quality: int = 90
+    quality: int = 100
     preserve_exif: bool = True
+    preset: str = "standard"
 
 
 class ConvertResponse(BaseModel):
     total: int
     successful: int
     failed: int
+    skipped: int
     results: List[dict]
 
 
@@ -232,6 +238,161 @@ async def scan_directory(request: ScanRequest):
         raise HTTPException(status_code=500, detail=f"Scan error: {str(e)}")
 
 
+async def _run_conversion(
+    request: ConvertRequest,
+    progress_cb: Optional[Callable[[dict], Awaitable[None] | None]] = None,
+) -> ConvertResponse:
+    results = []
+    successful = 0
+    failed = 0
+    skipped = 0
+
+    skip_existing = os.getenv("SPECTRUM_SKIP_EXISTING", "1") != "0"
+
+    # Resolve input files first to support fallback output dir selection
+    resolved_files = [resolve_path(p) for p in request.files]
+    existing_files = [rf.path for rf in resolved_files if rf.path.exists()]
+    missing_files = [rf.original for rf in resolved_files if not rf.path.exists()]
+
+    if not existing_files:
+        raise HTTPException(
+            status_code=404,
+            detail="No input files are accessible. Share the drive in Docker Desktop or choose a folder under a shared path.",
+        )
+
+    resolved_output = resolve_path(request.output_dir)
+    output_dir = resolved_output.path
+
+    # Allow creating the output directory if its parent exists. If not, try a safe fallback.
+    if not output_dir.exists() and not output_dir.parent.exists():
+        try:
+            common_root = Path(os.path.commonpath([str(p) for p in existing_files]))
+        except ValueError:
+            common_root = None
+
+        if common_root:
+            if common_root.exists() and common_root.is_file():
+                common_root = common_root.parent
+            # Avoid falling back to filesystem root or drive roots
+            if (
+                str(common_root) not in {"/", "."}
+                and not is_drive_mount_root(common_root)
+                and common_root.exists()
+                and common_root.is_dir()
+            ):
+                output_dir = common_root / "converted"
+            else:
+                common_root = None
+
+        if not output_dir.exists() and not output_dir.parent.exists():
+            detail_path = resolved_output.original or normalize_input_path(request.output_dir)
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Output path not accessible: {detail_path}. "
+                    "Share the drive in Docker Desktop or choose a folder under a shared path."
+                ),
+            )
+
+    async def emit(result_payload: dict):
+        if not progress_cb:
+            return
+        if inspect.iscoroutinefunction(progress_cb):
+            await progress_cb(result_payload)
+        else:
+            progress_cb(result_payload)
+
+    for missing in missing_files:
+        payload = {
+            "src": missing,
+            "dst": str(output_dir),
+            "success": False,
+            "skipped": False,
+            "error": "File not accessible: ensure the drive is shared with Docker.",
+            "size_bytes": None,
+            "metadata_copied": False,
+            "metadata_error": "source file not accessible",
+        }
+        results.append(payload)
+        failed += 1
+        await emit(payload)
+
+    for file_path in existing_files:
+        src = file_path
+
+        # Determine output path (maintain directory structure)
+        source_root = output_dir.parent
+        try:
+            relative_path = src.relative_to(source_root)
+        except ValueError:
+            relative_path = Path(src.name)
+        dst = output_dir / relative_path.with_suffix(".jpg")
+
+        if skip_existing and dst.exists():
+            metadata_copied = False
+            metadata_error = None
+            if request.preserve_exif:
+                metadata_copied, metadata_error = await exif_service.copy_exif(
+                    src, dst
+                )
+            payload = {
+                "src": str(src),
+                "dst": str(dst),
+                "success": True,
+                "skipped": True,
+                "error": None,
+                "size_bytes": dst.stat().st_size if dst.exists() else None,
+                "metadata_copied": metadata_copied,
+                "metadata_error": metadata_error,
+            }
+            results.append(payload)
+            skipped += 1
+            await emit(payload)
+            continue
+
+        # Convert file
+        result = await converter_service.convert_file(
+            src=src,
+            dst=dst,
+            quality=request.quality,
+            preset=request.preset,
+        )
+
+        metadata_copied = False
+        metadata_error = None
+
+        # Preserve EXIF if requested and conversion succeeded
+        if result.success and request.preserve_exif:
+            metadata_copied, metadata_error = await exif_service.copy_exif(src, dst)
+
+        # Track results
+        if result.success:
+            successful += 1
+        else:
+            failed += 1
+
+        payload = {
+            "src": result.src_path,
+            "dst": result.dst_path,
+            "success": result.success,
+            "skipped": False,
+            "error": result.error,
+            "size_bytes": result.size_bytes,
+            "metadata_copied": metadata_copied,
+            "metadata_error": metadata_error,
+        }
+        results.append(payload)
+        await emit(payload)
+
+    return ConvertResponse(
+        total=len(request.files),
+        successful=successful,
+        failed=failed,
+        skipped=skipped,
+        results=results,
+    )
+
+
 @app.post("/api/convert", response_model=ConvertResponse)
 async def convert_files(request: ConvertRequest):
     """
@@ -240,104 +401,80 @@ async def convert_files(request: ConvertRequest):
     Processes files sequentially with optional EXIF preservation.
     """
     try:
-        results = []
-        successful = 0
-        failed = 0
-
-        # Resolve input files first to support fallback output dir selection
-        resolved_files = [resolve_path(p) for p in request.files]
-        existing_files = [rf.path for rf in resolved_files if rf.path.exists()]
-        missing_files = [rf.original for rf in resolved_files if not rf.path.exists()]
-
-        if not existing_files:
-            raise HTTPException(
-                status_code=404,
-                detail="No input files are accessible. Share the drive in Docker Desktop or choose a folder under a shared path.",
-            )
-
-        resolved_output = resolve_path(request.output_dir)
-        output_dir = resolved_output.path
-
-        # Allow creating the output directory if its parent exists. If not, try a safe fallback.
-        if not output_dir.exists() and not output_dir.parent.exists():
-            try:
-                common_root = Path(os.path.commonpath([str(p) for p in existing_files]))
-            except ValueError:
-                common_root = None
-
-            if common_root:
-                if common_root.exists() and common_root.is_file():
-                    common_root = common_root.parent
-                # Avoid falling back to filesystem root or drive roots
-                if (
-                    str(common_root) not in {"/", "."}
-                    and not is_drive_mount_root(common_root)
-                    and common_root.exists()
-                    and common_root.is_dir()
-                ):
-                    output_dir = common_root / "converted"
-                else:
-                    common_root = None
-
-            if not output_dir.exists() and not output_dir.parent.exists():
-                detail_path = resolved_output.original or normalize_input_path(request.output_dir)
-                raise HTTPException(
-                    status_code=404,
-                    detail=(
-                        f"Output path not accessible: {detail_path}. "
-                        "Share the drive in Docker Desktop or choose a folder under a shared path."
-                    ),
-                )
-
-        for missing in missing_files:
-            results.append(
-                {
-                    "src": missing,
-                    "dst": str(output_dir),
-                    "success": False,
-                    "error": "File not accessible: ensure the drive is shared with Docker.",
-                    "size_bytes": None,
-                }
-            )
-            failed += 1
-
-        for file_path in existing_files:
-            src = file_path
-
-            # Determine output path (maintain directory structure)
-            dst = output_dir / src.with_suffix(".jpg").name
-
-            # Convert file
-            result = await converter_service.convert_file(
-                src=src, dst=dst, quality=request.quality
-            )
-
-            # Preserve EXIF if requested and conversion succeeded
-            if result.success and request.preserve_exif:
-                await exif_service.copy_exif(src, dst)
-
-            # Track results
-            if result.success:
-                successful += 1
-            else:
-                failed += 1
-
-            results.append(
-                {
-                    "src": result.src_path,
-                    "dst": result.dst_path,
-                    "success": result.success,
-                    "error": result.error,
-                    "size_bytes": result.size_bytes,
-                }
-            )
-
-        return ConvertResponse(
-            total=len(request.files),
-            successful=successful,
-            failed=failed,
-            results=results,
-        )
-
+        return await _run_conversion(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Conversion error: {str(e)}")
+
+
+@app.post("/api/convert/stream")
+async def convert_files_stream(request: ConvertRequest, fastapi_request: Request):
+    """
+    Stream conversion progress as NDJSON.
+    """
+
+    async def event_stream():
+        progress = {"processed": 0, "successful": 0, "failed": 0, "skipped": 0}
+
+        def update_counts(payload: dict):
+            progress["processed"] += 1
+            if payload.get("skipped"):
+                progress["skipped"] += 1
+            elif payload.get("success"):
+                progress["successful"] += 1
+            else:
+                progress["failed"] += 1
+
+        async def on_progress(payload: dict):
+            update_counts(payload)
+            if await fastapi_request.is_disconnected():
+                return
+            message = {
+                "type": "progress",
+                "processed": progress["processed"],
+                "successful": progress["successful"],
+                "failed": progress["failed"],
+                "skipped": progress["skipped"],
+                "result": payload,
+            }
+            yield_line = json.dumps(message) + "\n"
+            await stream_queue.put(yield_line)
+
+        stream_queue: asyncio.Queue[str] = asyncio.Queue()
+
+        await stream_queue.put(json.dumps({"type": "start", "total": len(request.files)}) + "\n")
+
+        async def producer():
+            try:
+                await _run_conversion(request, on_progress)
+                await stream_queue.put(
+                    json.dumps(
+                        {
+                            "type": "complete",
+                            "processed": progress["processed"],
+                            "successful": progress["successful"],
+                            "failed": progress["failed"],
+                            "skipped": progress["skipped"],
+                            "total": len(request.files),
+                        }
+                    )
+                    + "\n"
+                )
+            except Exception as e:
+                await stream_queue.put(
+                    json.dumps({"type": "error", "message": str(e)}) + "\n"
+                )
+
+        producer_task = asyncio.create_task(producer())
+
+        try:
+            while True:
+                line = await stream_queue.get()
+                yield line
+                if line.startswith("{\"type\": \"complete\"") or line.startswith(
+                    "{\"type\": \"error\""
+                ):
+                    break
+        finally:
+            producer_task.cancel()
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")

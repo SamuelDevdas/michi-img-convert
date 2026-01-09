@@ -18,6 +18,7 @@ RUN uv pip install --system \
     uvicorn \
     rawpy \
     imageio \
+    pillow \
     python-multipart \
     websockets
 

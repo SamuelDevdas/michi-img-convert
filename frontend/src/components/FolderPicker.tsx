@@ -114,6 +114,7 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
             Scan for .ARW Files
           </button>
         </form>
+
       </div>
 
       <FolderBrowserModal
