@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import FolderPicker from '@/components/FolderPicker'
 import ScanResults from '@/components/ScanResults'
 import ConversionDashboard from '@/components/ConversionDashboard'
+import ComparisonGallery from '@/components/ComparisonGallery'
 import { useConverter } from '@/hooks/useConverter'
 
 type AppState = 'idle' | 'scanned' | 'converting' | 'complete'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const LAST_REVIEW_KEY = 'spectrum:last-review'
 
 export default function Home() {
   const [state, setState] = useState<AppState>('idle')
@@ -14,8 +17,23 @@ export default function Home() {
   const [conversionData, setConversionData] = useState<any>(null)
   const [selectedPath, setSelectedPath] = useState('')
   const [preset, setPreset] = useState('standard')
+  const [savedReview, setSavedReview] = useState<any | null>(null)
+  const [isRestoring, setIsRestoring] = useState(false)
   
   const { scan, convertWithProgress, isLoading, error } = useConverter()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(LAST_REVIEW_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setSavedReview(parsed)
+      } catch {
+        window.localStorage.removeItem(LAST_REVIEW_KEY)
+      }
+    }
+  }, [])
 
   const handlePathSelected = async (path: string) => {
     setSelectedPath(path)
@@ -45,7 +63,8 @@ export default function Home() {
       processed: 0,
       successful: 0,
       failed: 0,
-      skipped: 0
+      skipped: 0,
+      results: []
     })
 
     const results = await convertWithProgress(
@@ -66,13 +85,37 @@ export default function Home() {
     )
 
     if (results) {
-      setConversionData((prev: any) => ({
-        ...prev,
+      const updated = {
         total: results.total,
         successful: results.successful,
         failed: results.failed,
-        skipped: results.skipped
-      }))
+        skipped: results.skipped,
+        processed: results.total,
+        results: results.results || []
+      }
+      setConversionData(updated)
+      const reviewPayload = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        sourcePath: selectedPath,
+        outputDir,
+        preset,
+        summary: {
+          total: results.total,
+          successful: results.successful,
+          failed: results.failed,
+          skipped: results.skipped
+        },
+        pairCount: results.results?.length || 0
+      }
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(LAST_REVIEW_KEY, JSON.stringify(reviewPayload))
+        } catch {
+          window.localStorage.removeItem(LAST_REVIEW_KEY)
+        }
+      }
+      setSavedReview(reviewPayload)
       setState('complete')
     }
   }
@@ -82,6 +125,48 @@ export default function Home() {
     setScanData(null)
     setConversionData(null)
     setSelectedPath('')
+  }
+
+  const handleOpenSavedReview = async () => {
+    if (!savedReview) return
+    setIsRestoring(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_path: savedReview.sourcePath,
+          output_dir: savedReview.outputDir || `${savedReview.sourcePath}/converted`
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to restore review')
+      }
+
+      const data = await response.json()
+      setConversionData({
+        total: data.total_converted,
+        successful: data.total_converted,
+        failed: 0,
+        skipped: data.total_converted,
+        processed: data.total_converted,
+        results: data.pairs || []
+      })
+      setState('complete')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  const handleClearSavedReview = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(LAST_REVIEW_KEY)
+    }
+    setSavedReview(null)
   }
 
   return (
@@ -138,6 +223,56 @@ export default function Home() {
         {/* glass-panel wrapper for main interactive area */}
         <div className="glass-panel rounded-2xl p-1 shadow-2xl">
             <div className="bg-black/40 rounded-xl p-8 border border-white/5">
+                {state === 'idle' && savedReview && (
+                  <div className="mb-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-black/40 to-black/60 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="max-w-xl">
+                        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--secondary-text)]">Resume</p>
+                        <h2 className="font-display text-2xl font-bold">Last conversion ready</h2>
+                        <p
+                          className="text-xs text-[var(--secondary-text)] mt-2 truncate"
+                          title={savedReview.sourcePath}
+                        >
+                          {savedReview.sourcePath}
+                        </p>
+                      </div>
+                      <div className="text-right text-[11px] text-[var(--secondary-text)]">
+                        {new Date(savedReview.timestamp).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-[var(--secondary-text)]">
+                      <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1">
+                        {savedReview.summary.total} total
+                      </span>
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                        {savedReview.summary.successful} success
+                      </span>
+                      <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-yellow-200">
+                        {savedReview.summary.skipped} skipped
+                      </span>
+                      <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-red-200">
+                        {savedReview.summary.failed} failed
+                      </span>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button
+                        onClick={handleOpenSavedReview}
+                        disabled={isRestoring}
+                        className="rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
+                      >
+                        {isRestoring ? 'Restoring…' : 'Open review'}
+                      </button>
+                      <button
+                        onClick={handleClearSavedReview}
+                        className="rounded-full border border-white/10 px-6 py-2 text-sm text-white/70 hover:bg-white/10"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {/* Step 1: Folder Selection */}
                 {state === 'idle' && (
                 <FolderPicker onPathSelected={handlePathSelected} />
@@ -167,6 +302,20 @@ export default function Home() {
                     total={conversionData.total}
                     isComplete={state === 'complete'}
                 />
+                )}
+
+                {state === 'complete' && conversionData?.results?.length > 0 && (
+                  <ComparisonGallery
+                    apiBase={API_BASE}
+                    items={conversionData.results
+                      .filter((item: any) => item.dst)
+                      .map((item: any) => ({
+                        id: item.dst || item.src,
+                        originalPath: item.src,
+                        convertedPath: item.dst,
+                        skipped: item.skipped
+                      }))}
+                  />
                 )}
             </div>
         </div>

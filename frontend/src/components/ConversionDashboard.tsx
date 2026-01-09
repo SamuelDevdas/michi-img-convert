@@ -41,25 +41,25 @@ export default function ConversionDashboard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-4 bg-white/5 rounded-lg">
+      <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex-1 min-w-[140px] text-center p-4 bg-white/5 rounded-lg">
           <div className="text-2xl font-bold">{completed}</div>
-          <div className="text-sm text-[var(--secondary-text)]">Processed</div>
+          <div className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Processed</div>
         </div>
         
-        <div className="text-center p-4 bg-white/5 rounded-lg">
+        <div className="flex-1 min-w-[140px] text-center p-4 bg-white/5 rounded-lg">
           <div className="text-2xl font-bold text-green-500">{successful}</div>
-          <div className="text-sm text-[var(--secondary-text)]">Successful</div>
+          <div className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Success</div>
         </div>
         
-        <div className="text-center p-4 bg-white/5 rounded-lg">
+        <div className="flex-1 min-w-[140px] text-center p-4 bg-white/5 rounded-lg">
           <div className="text-2xl font-bold text-red-500">{failed}</div>
-          <div className="text-sm text-[var(--secondary-text)]">Failed</div>
+          <div className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Failed</div>
         </div>
 
-        <div className="text-center p-4 bg-white/5 rounded-lg">
+        <div className="flex-1 min-w-[140px] text-center p-4 bg-white/5 rounded-lg">
           <div className="text-2xl font-bold text-yellow-500">{skipped}</div>
-          <div className="text-sm text-[var(--secondary-text)]">Skipped</div>
+          <div className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Skipped</div>
         </div>
       </div>
 

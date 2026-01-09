@@ -47,9 +47,12 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
   return (
     <>
       <div className="relative">
-        <h2 className="font-display text-4xl font-bold mb-3 text-white">Select Path</h2>
-        <p className="text-[var(--secondary-text)] mb-8 text-lg">
-          Choose the directory containing your ARW files to begin.
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--secondary-text)] mb-2">
+          New Conversion
+        </p>
+        <h2 className="font-display text-3xl font-bold mb-3 text-white">Choose a source folder</h2>
+        <p className="text-[var(--secondary-text)] mb-8 text-base">
+          We scan for ARW files and keep your originals untouched.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -143,6 +143,8 @@ export function useConverter() {
       const decoder = new TextDecoder()
       let buffer = ''
       let finalSummary: ConversionResponse | null = null
+      const results: ConversionResponse['results'] = []
+      const seen = new Set<string>()
 
       while (true) {
         const { done, value } = await reader.read()
@@ -167,6 +169,13 @@ export function useConverter() {
           }
 
           if (data.type === 'progress') {
+            if (data.result) {
+              const key = data.result.src || data.result.dst || JSON.stringify(data.result)
+              if (!seen.has(key)) {
+                seen.add(key)
+                results.push(data.result)
+              }
+            }
             onProgress({
               processed: data.processed ?? 0,
               successful: data.successful ?? 0,
@@ -182,7 +191,7 @@ export function useConverter() {
               successful: data.successful ?? 0,
               failed: data.failed ?? 0,
               skipped: data.skipped ?? 0,
-              results: []
+              results
             }
           }
 

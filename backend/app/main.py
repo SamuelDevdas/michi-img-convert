@@ -6,13 +6,15 @@ FastAPI backend providing ARW to JPEG conversion services.
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from typing import List, Optional, Callable, Awaitable
 import os
 import json
 import inspect
 import asyncio
+from io import BytesIO
+import mimetypes
 from pathlib import Path
 
 from app.services.scanner import ScannerService, FileInfo
@@ -30,6 +32,9 @@ app = FastAPI(
     description="Professional RAW image converter by TrueVine Insights",
     version="2.0.0",
 )
+
+ALLOWED_PREVIEW_EXTS = {".arw", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+ALLOWED_FILE_EXTS = {".arw", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 # CORS middleware for frontend communication
 app.add_middleware(
@@ -75,6 +80,18 @@ class ConvertResponse(BaseModel):
     failed: int
     skipped: int
     results: List[dict]
+
+
+class ReviewRequest(BaseModel):
+    source_path: str
+    output_dir: str
+    limit: Optional[int] = None
+
+
+class ReviewResponse(BaseModel):
+    total_original: int
+    total_converted: int
+    pairs: List[dict]
 
 
 # API Endpoints
@@ -176,6 +193,72 @@ async def browse_directory(path: str = ""):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Browse error: {str(e)}")
+
+
+@app.get("/api/preview")
+async def preview_file(path: str):
+    """
+    Return a lightweight JPEG preview for RAW/JPEG files.
+    """
+    resolved = resolve_path(path)
+    target = resolved.path
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {resolved.original}")
+    if target.is_dir():
+        raise HTTPException(status_code=400, detail="Path is a directory.")
+
+    ext = target.suffix.lower()
+    if ext not in ALLOWED_PREVIEW_EXTS:
+        raise HTTPException(status_code=415, detail="Preview not supported for this file.")
+
+    max_dim = int(os.getenv("SPECTRUM_PREVIEW_MAX", "1600"))
+    quality = int(os.getenv("SPECTRUM_PREVIEW_QUALITY", "85"))
+
+    try:
+        from PIL import Image
+        import rawpy
+
+        if ext == ".arw":
+            with rawpy.imread(str(target)) as raw:
+                rgb = raw.postprocess(
+                    use_camera_wb=True,
+                    no_auto_bright=True,
+                    output_bps=8,
+                    half_size=True,
+                    output_color=rawpy.ColorSpace.sRGB,
+                )
+            image = Image.fromarray(rgb)
+        else:
+            image = Image.open(target).convert("RGB")
+
+        image.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG", quality=quality, optimize=True)
+        buffer.seek(0)
+        return StreamingResponse(buffer, media_type="image/jpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview error: {str(e)}")
+
+
+@app.get("/api/file")
+async def serve_file(path: str):
+    """
+    Serve original or converted files for download or inspection.
+    """
+    resolved = resolve_path(path)
+    target = resolved.path
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {resolved.original}")
+    if target.is_dir():
+        raise HTTPException(status_code=400, detail="Path is a directory.")
+
+    ext = target.suffix.lower()
+    if ext not in ALLOWED_FILE_EXTS:
+        raise HTTPException(status_code=415, detail="File type not supported.")
+
+    media_type, _ = mimetypes.guess_type(str(target))
+    return FileResponse(target, media_type=media_type or "application/octet-stream")
 
 
 @app.post("/api/scan", response_model=ScanResponse)
@@ -478,3 +561,65 @@ async def convert_files_stream(request: ConvertRequest, fastapi_request: Request
             producer_task.cancel()
 
     return StreamingResponse(event_stream(), media_type="application/x-ndjson")
+
+
+@app.post("/api/review", response_model=ReviewResponse)
+async def build_review_pairs(request: ReviewRequest):
+    """
+    Rebuild comparison pairs from an existing source folder and output folder.
+    """
+    resolved_source = resolve_path(request.source_path)
+    source_dir = resolved_source.path
+    if not source_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Source path not found: {resolved_source.original}",
+        )
+    if not source_dir.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Source path is not a directory: {resolved_source.original}",
+        )
+
+    resolved_output = resolve_path(request.output_dir)
+    output_dir = resolved_output.path
+    if not output_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Output path not found: {resolved_output.original}",
+        )
+
+    total_original = 0
+    total_converted = 0
+    pairs: List[dict] = []
+
+    for pattern in ("*.arw", "*.ARW"):
+        for arw_file in source_dir.rglob(pattern):
+            total_original += 1
+            try:
+                relative_path = arw_file.relative_to(source_dir)
+            except ValueError:
+                relative_path = Path(arw_file.name)
+            converted_path = output_dir / relative_path.with_suffix(".jpg")
+            if converted_path.exists():
+                total_converted += 1
+                pairs.append(
+                    {
+                        "src": str(arw_file),
+                        "dst": str(converted_path),
+                        "success": True,
+                        "skipped": True,
+                        "error": None,
+                    }
+                )
+
+                if request.limit and len(pairs) >= request.limit:
+                    break
+        if request.limit and len(pairs) >= request.limit:
+            break
+
+    return ReviewResponse(
+        total_original=total_original,
+        total_converted=total_converted,
+        pairs=pairs,
+    )
