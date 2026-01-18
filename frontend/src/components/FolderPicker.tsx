@@ -82,10 +82,8 @@ export default function FolderPicker({ onPathSelected }: FolderPickerProps) {
     const targetPath = drive.photo_hint || drive.path
     setPath(targetPath)
     setIsValid(true)
-    // Auto-scan when clicking a drive with photos
-    if (drive.has_photos && drive.photo_hint) {
-      onPathSelected(targetPath)
-    }
+    // Always trigger scan when clicking a drive
+    onPathSelected(targetPath)
   }
 
   // Separate drives into categories

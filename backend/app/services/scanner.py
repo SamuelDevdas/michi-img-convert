@@ -71,17 +71,25 @@ class ScannerService:
         # Build FileInfo list with conversion status
         results = []
         for arw_file in arw_files:
+            # Skip macOS resource fork files and hidden files
+            if arw_file.name.startswith("._") or arw_file.name.startswith("."):
+                continue
             # Check if already converted
             relative_path = arw_file.relative_to(source_dir)
             output_path = source_dir / output_subdir / relative_path.with_suffix(".jpg")
 
-            file_info = FileInfo(
-                path=str(arw_file),
-                size=arw_file.stat().st_size,
-                modified_time=arw_file.stat().st_mtime,
-                already_converted=output_path.exists(),
-            )
-            results.append(file_info)
+            try:
+                stat = arw_file.stat()
+                file_info = FileInfo(
+                    path=str(arw_file),
+                    size=stat.st_size,
+                    modified_time=stat.st_mtime,
+                    already_converted=output_path.exists(),
+                )
+                results.append(file_info)
+            except (PermissionError, OSError):
+                # Skip files we can't access
+                continue
 
         return results
 

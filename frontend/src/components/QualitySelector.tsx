@@ -62,23 +62,19 @@ export default function QualitySelector({ value, onChange }: QualitySelectorProp
               key={preset.id}
               type="button"
               onClick={() => onChange(preset.id)}
-              className={`group text-left rounded-xl border px-4 py-3 transition-all ${
+              className={`relative group text-left rounded-xl border px-4 py-3 transition-all ${
                 selected
                   ? 'border-[var(--accent)]/70 bg-[var(--accent)]/10 shadow-[0_0_20px_rgba(6,182,212,0.15)]'
                   : 'border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-white">{preset.name}</p>
-                  <p className="text-xs text-[var(--secondary-text)]">{preset.tagline}</p>
-                </div>
-                {preset.badge && (
-                  <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)]">
-                    {preset.badge}
-                  </span>
-                )}
-              </div>
+              {preset.badge && (
+                <span className="absolute -top-2 right-3 rounded-full border border-[var(--accent)]/40 bg-[var(--card-bg)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+                  {preset.badge}
+                </span>
+              )}
+              <p className="font-semibold text-white">{preset.name}</p>
+              <p className="text-xs text-[var(--secondary-text)]">{preset.tagline}</p>
               <p className="mt-2 text-xs text-[var(--secondary-text)]">{preset.description}</p>
             </button>
           )

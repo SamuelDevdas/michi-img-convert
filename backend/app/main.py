@@ -595,13 +595,20 @@ async def build_review_pairs(request: ReviewRequest):
 
     for pattern in ("*.arw", "*.ARW"):
         for arw_file in source_dir.rglob(pattern):
+            # Skip macOS resource fork files and hidden files
+            if arw_file.name.startswith("._") or arw_file.name.startswith("."):
+                continue
             total_original += 1
             try:
                 relative_path = arw_file.relative_to(source_dir)
             except ValueError:
                 relative_path = Path(arw_file.name)
             converted_path = output_dir / relative_path.with_suffix(".jpg")
-            if converted_path.exists():
+            try:
+                exists = converted_path.exists()
+            except (PermissionError, OSError):
+                continue
+            if exists:
                 total_converted += 1
                 pairs.append(
                     {

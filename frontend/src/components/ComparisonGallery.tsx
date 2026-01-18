@@ -14,12 +14,28 @@ interface ComparisonGalleryProps {
   apiBase: string
 }
 
+interface ExifMetadata {
+  Make?: string
+  Model?: string
+  LensModel?: string
+  DateTimeOriginal?: string
+  ISO?: number
+  ExposureTime?: number | string
+  FNumber?: number
+  FocalLength?: string
+  GPSLatitude?: string | number
+  GPSLongitude?: string | number
+  GPSAltitude?: string | number
+}
+
 export default function ComparisonGallery({ items, apiBase }: ComparisonGalleryProps) {
   const [selected, setSelected] = useState<ComparisonItem | null>(null)
   const [slider, setSlider] = useState(50)
   const [visibleCount, setVisibleCount] = useState(24)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [metadata, setMetadata] = useState<ExifMetadata | null>(null)
+  const [showMetadata, setShowMetadata] = useState(false)
   const compareRef = useRef<HTMLDivElement | null>(null)
 
   const selectedIndex = selected
@@ -58,6 +74,26 @@ export default function ComparisonGallery({ items, apiBase }: ComparisonGalleryP
       window.removeEventListener('pointerup', handleUp)
     }
   }, [isDragging])
+
+  // Fetch metadata when a file is selected
+  useEffect(() => {
+    if (!selected) {
+      setMetadata(null)
+      return
+    }
+    const fetchMetadata = async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/metadata?path=${encodeURIComponent(selected.convertedPath)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setMetadata(data.metadata || null)
+        }
+      } catch {
+        setMetadata(null)
+      }
+    }
+    fetchMetadata()
+  }, [selected, apiBase])
 
   const visibleItems = useMemo(
     () => items.slice(0, visibleCount),
@@ -214,7 +250,7 @@ export default function ComparisonGallery({ items, apiBase }: ComparisonGalleryP
             <div className="p-6 space-y-4">
               <div
                 ref={compareRef}
-                className="relative h-[70vh] overflow-hidden rounded-xl border border-white/10 bg-black/60"
+                className="relative h-[45vh] overflow-hidden rounded-xl border border-white/10 bg-black/60"
               >
                 <img
                   src={buildPreviewUrl(selected.convertedPath)}
@@ -292,7 +328,7 @@ export default function ComparisonGallery({ items, apiBase }: ComparisonGalleryP
                 <span className="text-xs text-[var(--secondary-text)]">Converted</span>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <a
                   href={buildFileUrl(selected.convertedPath)}
                   target="_blank"
@@ -309,7 +345,110 @@ export default function ComparisonGallery({ items, apiBase }: ComparisonGalleryP
                 >
                   Download original
                 </a>
+                <button
+                  type="button"
+                  onClick={() => setShowMetadata(!showMetadata)}
+                  className={`rounded-lg border px-4 py-2 text-xs transition ${
+                    showMetadata
+                      ? 'border-[var(--accent)]/50 bg-[var(--accent)]/10 text-[var(--accent)]'
+                      : 'border-white/10 text-white/80 hover:bg-white/10'
+                  }`}
+                >
+                  {showMetadata ? 'Hide EXIF' : 'Show EXIF'}
+                </button>
               </div>
+
+              {showMetadata && metadata && (
+                <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-4">
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--accent)] flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    EXIF Metadata Preserved
+                  </p>
+
+                  {/* Camera & Settings */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Camera</p>
+                      <p className={`font-medium ${metadata.Make ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.Make && metadata.Model ? `${metadata.Make} ${metadata.Model}` : 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Lens</p>
+                      <p className={`font-medium ${metadata.LensModel ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.LensModel || 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Date Taken</p>
+                      <p className={`font-medium ${metadata.DateTimeOriginal ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.DateTimeOriginal || 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">ISO</p>
+                      <p className={`font-medium ${metadata.ISO ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.ISO || 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Shutter</p>
+                      <p className={`font-medium ${metadata.ExposureTime ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.ExposureTime
+                          ? (typeof metadata.ExposureTime === 'number' && metadata.ExposureTime < 1
+                              ? `1/${Math.round(1 / metadata.ExposureTime)}s`
+                              : `${metadata.ExposureTime}s`)
+                          : 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Aperture</p>
+                      <p className={`font-medium ${metadata.FNumber ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.FNumber ? `f/${metadata.FNumber}` : 'Not available'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--secondary-text)]">Focal Length</p>
+                      <p className={`font-medium ${metadata.FocalLength ? 'text-white' : 'text-white/40 italic'}`}>
+                        {metadata.FocalLength || 'Not available'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* GPS / Location */}
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--secondary-text)] mb-2 flex items-center gap-2">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Location Data
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <p className="text-[var(--secondary-text)]">Latitude</p>
+                        <p className={`font-medium ${metadata.GPSLatitude ? 'text-white' : 'text-white/40 italic'}`}>
+                          {metadata.GPSLatitude || 'Not recorded'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[var(--secondary-text)]">Longitude</p>
+                        <p className={`font-medium ${metadata.GPSLongitude ? 'text-white' : 'text-white/40 italic'}`}>
+                          {metadata.GPSLongitude || 'Not recorded'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[var(--secondary-text)]">Altitude</p>
+                        <p className={`font-medium ${metadata.GPSAltitude ? 'text-white' : 'text-white/40 italic'}`}>
+                          {metadata.GPSAltitude || 'Not recorded'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
