@@ -193,7 +193,7 @@ class ConverterService:
                 "noise_thr": 2,
                 "median_filter_passes": 0,
                 "fbdd_noise_reduction": "off",
-                "sharpen": {"enabled": True, "radius": 1.1, "percent": 150, "threshold": 2},
+                "sharpen": {"enabled": True, "radius": 1.1, "percent": 165, "threshold": 2},
             },
             "clean": {
                 "auto_bright": True,

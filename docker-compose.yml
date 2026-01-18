@@ -8,8 +8,13 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/app:/app/app
-      - "${SPECTRUM_VOLUMES_MOUNT:-/Volumes}:/Volumes"  # External Drives (Read/Write)
-      - "${SPECTRUM_USERS_MOUNT:-/Users}:/Users"        # User Home (Read/Write)
+      # macOS: External drives and network shares appear here
+      - "${SPECTRUM_VOLUMES_MOUNT:-/Volumes}:/Volumes"
+      # User home directories
+      - "${SPECTRUM_USERS_MOUNT:-/Users}:/Users"
+      # Windows: Additional drives - set SPECTRUM_EXTRA_MOUNT to map NAS drives
+      # Example: SPECTRUM_EXTRA_MOUNT=Z:\ will mount Z: drive
+      - "${SPECTRUM_EXTRA_MOUNT:-./backend/app}:/extra:ro"
     environment:
       - ENVIRONMENT=development
       - SPECTRUM_VOLUMES_DRIVE=${SPECTRUM_VOLUMES_DRIVE:-}

@@ -8,3 +8,9 @@ dependencies = [
     "imageio>=2.37.0",
     "rawpy>=0.25.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+markers = [
+    "e2e: end-to-end tests that require running Docker containers",
+]

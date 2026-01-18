@@ -91,15 +91,32 @@ The app needs access to your photos directory via Docker mounts.
 - Make sure the drive is shared in Docker Desktop settings.
 
 ### 4. NAS / Synology Shares (Windows)
-If your photos live on a network share (e.g., `\\NAS\Photos`), map it to a drive letter first:
+If your photos live on a network share (e.g., `\\NAS\Photos`):
+
+**Step 1: Map the network share to a drive letter**
 ```powershell
 net use Z: \\NAS\Photos /persistent:yes
 ```
-Then update `start.bat`:
-- `set SPECTRUM_VOLUMES_MOUNT=Z:\`
-- `set SPECTRUM_VOLUMES_DRIVE=Z`
 
-If `Z:` is not mapped, Windows cannot access it and the app will show "Path not found".
+**Step 2: Share the drive in Docker Desktop**
+1. Open Docker Desktop → Settings → Resources → File Sharing
+2. Add `Z:\` (or your NAS drive) to the shared paths
+3. Click "Apply & Restart"
+
+**Step 3: Start the app**
+```bat
+start.bat
+```
+
+The app **automatically detects** mapped network drives and shows them in the UI. No manual configuration needed!
+
+**How it works:**
+- `start.bat` scans for mapped network drives on startup
+- The UI shows detected drives with a "Quick Access" panel
+- Drives with photo folders (Photos, Pictures, DCIM) are highlighted
+- One click to select and scan a detected photo folder
+
+**Note:** UNC paths (`\\server\share`) cannot be used directly - Docker requires a mapped drive letter.
 
 ### 5. Seamless UX Tips (Windows)
 - You can paste paths with quotes; the app will trim them automatically.

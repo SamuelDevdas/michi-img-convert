@@ -645,3 +645,117 @@ async def get_file_metadata(path: str):
         "path": str(target),
         "metadata": metadata,
     }
+
+
+@app.get("/api/drives")
+async def get_available_drives():
+    """
+    Get all available drives/volumes for automatic detection.
+
+    Returns accessible drives with their status and sample contents
+    to help users find their photos without manual configuration.
+    """
+    from app.utils.paths import detect_windows_drive_mounts
+
+    drives = []
+
+    # Check macOS/Linux mounted volumes
+    volumes_path = Path("/Volumes")
+    if volumes_path.exists():
+        try:
+            for item in volumes_path.iterdir():
+                if item.is_dir() and not item.name.startswith("."):
+                    drive_info = _get_drive_info(item, "volume")
+                    drives.append(drive_info)
+        except (PermissionError, OSError):
+            pass
+
+    # Check Windows drive mounts
+    windows_drives = detect_windows_drive_mounts()
+    for letter, mount_path in windows_drives.items():
+        drive_info = _get_drive_info(mount_path, "windows", letter.upper())
+        drives.append(drive_info)
+
+    # Check /Users for home directories
+    users_path = Path("/Users")
+    if users_path.exists():
+        try:
+            for item in users_path.iterdir():
+                if item.is_dir() and not item.name.startswith(".") and item.name not in ("Shared", "Guest"):
+                    drive_info = {
+                        "name": f"Home ({item.name})",
+                        "path": str(item),
+                        "type": "home",
+                        "accessible": True,
+                        "has_photos": _has_photo_folders(item),
+                        "photo_hint": _find_photo_hint(item),
+                    }
+                    drives.append(drive_info)
+        except (PermissionError, OSError):
+            pass
+
+    return {
+        "drives": drives,
+        "platform": _detect_platform(),
+    }
+
+
+def _get_drive_info(path: Path, drive_type: str, letter: str = None) -> dict:
+    """Get information about a drive/volume."""
+    name = f"{letter}: Drive" if letter else path.name
+    accessible = False
+    has_photos = False
+    photo_hint = None
+
+    try:
+        # Test if we can actually read the drive
+        list(path.iterdir())
+        accessible = True
+        has_photos = _has_photo_folders(path)
+        photo_hint = _find_photo_hint(path)
+    except (PermissionError, OSError):
+        accessible = False
+
+    return {
+        "name": name,
+        "path": str(path),
+        "type": drive_type,
+        "letter": letter,
+        "accessible": accessible,
+        "has_photos": has_photos,
+        "photo_hint": photo_hint,
+    }
+
+
+def _has_photo_folders(path: Path) -> bool:
+    """Check if path contains common photo folder names."""
+    photo_names = {"photos", "pictures", "dcim", "images", "camera", "lightroom", "photography"}
+    try:
+        for item in path.iterdir():
+            if item.is_dir() and item.name.lower() in photo_names:
+                return True
+    except (PermissionError, OSError):
+        pass
+    return False
+
+
+def _find_photo_hint(path: Path) -> str | None:
+    """Find a hint about where photos might be located."""
+    photo_names = {"photos", "pictures", "dcim", "images", "camera", "lightroom", "photography"}
+    try:
+        for item in path.iterdir():
+            if item.is_dir() and item.name.lower() in photo_names:
+                return str(item)
+    except (PermissionError, OSError):
+        pass
+    return None
+
+
+def _detect_platform() -> str:
+    """Detect if running on Windows or Mac (from inside Docker)."""
+    # Check for Windows Docker mount patterns
+    if Path("/host_mnt").exists() or Path("/mnt/c").exists():
+        return "windows"
+    if Path("/Volumes").exists() and not Path("/mnt/c").exists():
+        return "macos"
+    return "linux"

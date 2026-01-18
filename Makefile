@@ -15,6 +15,13 @@ help:
 	@echo "  clean          Remove containers and artifacts"
 	@echo "  shell-backend  Open a shell in the backend container"
 	@echo ""
+	@echo "Testing:"
+	@echo "  test           Run all tests (unit, API, frontend, E2E)"
+	@echo "  test-unit      Run backend unit tests"
+	@echo "  test-api       Run backend API integration tests"
+	@echo "  test-frontend  Run frontend component tests"
+	@echo "  test-e2e       Run E2E tests (requires running containers)"
+	@echo ""
 
 .PHONY: setup
 setup:
@@ -56,3 +63,24 @@ clean: stop
 .PHONY: shell-backend
 shell-backend:
 	@docker exec -it michi-backend /bin/bash
+
+# Testing Commands
+.PHONY: test
+test:
+	@./run_tests.sh all
+
+.PHONY: test-unit
+test-unit:
+	@./run_tests.sh unit
+
+.PHONY: test-api
+test-api:
+	@./run_tests.sh api
+
+.PHONY: test-frontend
+test-frontend:
+	@./run_tests.sh frontend
+
+.PHONY: test-e2e
+test-e2e:
+	@./run_tests.sh e2e

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(apt-cache search:*)",
+      "Bash(docker compose build:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(chmod:*)",
+      "Bash(./run_tests.sh:*)",
+      "Bash(uv pip install:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(uv run python:*)",
+      "Bash(npm test:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npx jest:*)",
+      "Bash(/Users/samue/Desktop/3-CONSULTING-WORK/1-CLIENTS/michi-img-convert/run_tests.sh unit)",
+      "Bash(/Users/samue/Desktop/3-CONSULTING-WORK/1-CLIENTS/michi-img-convert/run_tests.sh:*)"
+    ]
+  }
+}
