@@ -69,7 +69,7 @@ class ScanResponse(BaseModel):
 class ConvertRequest(BaseModel):
     files: List[str]
     output_dir: str
-    quality: int = 100
+    quality: int = 95
     preserve_exif: bool = True
     preset: str = "standard"
 
@@ -623,3 +623,25 @@ async def build_review_pairs(request: ReviewRequest):
         total_converted=total_converted,
         pairs=pairs,
     )
+
+
+@app.get("/api/metadata")
+async def get_file_metadata(path: str):
+    """
+    Get key metadata from a file (for verification/debugging).
+
+    Returns camera info, GPS, dates, and exposure settings.
+    """
+    resolved = resolve_path(path)
+    target = resolved.path
+
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {resolved.original}")
+    if target.is_dir():
+        raise HTTPException(status_code=400, detail="Path is a directory.")
+
+    metadata = await exif_service.get_key_metadata(target)
+    return {
+        "path": str(target),
+        "metadata": metadata,
+    }

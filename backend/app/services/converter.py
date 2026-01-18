@@ -38,7 +38,7 @@ class ConverterService:
     def __init__(self, executor: Optional[ThreadPoolExecutor] = None):
         """Initialize converter with optional thread pool."""
         self.executor = executor or ThreadPoolExecutor(max_workers=2)
-        self.jpeg_quality_default = int(os.getenv("SPECTRUM_JPEG_QUALITY", "100"))
+        self.jpeg_quality_default = int(os.getenv("SPECTRUM_JPEG_QUALITY", "95"))
         self.enable_sharpen = os.getenv("SPECTRUM_SHARPEN", "1") != "0"
         self.sharpen_radius = float(os.getenv("SPECTRUM_SHARPEN_RADIUS", "1.2"))
         self.sharpen_percent = int(os.getenv("SPECTRUM_SHARPEN_PERCENT", "120"))

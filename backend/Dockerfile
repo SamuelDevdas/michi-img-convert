@@ -3,9 +3,10 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system dependencies for LibRaw/exiftool
+# Note: On Debian, exiftool is provided by libimage-exiftool-perl package
 RUN apt-get update && apt-get install -y \
     libexif-dev \
-    exiftool \
+    libimage-exiftool-perl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv

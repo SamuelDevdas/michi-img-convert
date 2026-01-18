@@ -1,61 +1,61 @@
 "use client"
 
-interface PresetOption {
-  id: string
+interface QualityOption {
+  id: number
   name: string
   tagline: string
   description: string
   badge?: string
 }
 
-const PRESETS: PresetOption[] = [
+const QUALITY_PRESETS: QualityOption[] = [
   {
-    id: 'standard',
-    name: 'Standard',
-    tagline: 'Balanced',
-    description: 'Natural contrast and color with clean detail.',
+    id: 100,
+    name: 'Maximum',
+    tagline: '100%',
+    description: 'Largest files. Best for archival or print.'
+  },
+  {
+    id: 95,
+    name: 'High',
+    tagline: '95%',
+    description: 'Visually identical. ~70% smaller than max.',
     badge: 'Recommended'
   },
   {
-    id: 'neutral',
-    name: 'Neutral',
-    tagline: 'Subtle',
-    description: 'Closest to RAW with minimal styling.'
+    id: 90,
+    name: 'Standard',
+    tagline: '90%',
+    description: 'Great quality. ~80% smaller than max.'
   },
   {
-    id: 'vivid',
-    name: 'Vivid',
-    tagline: 'Punchy',
-    description: 'More contrast and saturation for impact.'
-  },
-  {
-    id: 'clean',
-    name: 'Clean ISO',
-    tagline: 'Noise control',
-    description: 'Softer detail with stronger noise reduction.'
+    id: 80,
+    name: 'Web',
+    tagline: '80%',
+    description: 'Good for web/social. ~90% smaller.'
   }
 ]
 
-interface PresetSelectorProps {
-  value: string
-  onChange: (preset: string) => void
+interface QualitySelectorProps {
+  value: number
+  onChange: (quality: number) => void
 }
 
-export default function PresetSelector({ value, onChange }: PresetSelectorProps) {
+export default function QualitySelector({ value, onChange }: QualitySelectorProps) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Processing Preset</p>
-          <h3 className="font-display text-lg font-semibold">Choose a look</h3>
+          <p className="text-xs uppercase tracking-widest text-[var(--secondary-text)]">Output Quality</p>
+          <h3 className="font-display text-lg font-semibold">Choose file size</h3>
         </div>
         <span className="text-[10px] uppercase tracking-widest text-[var(--accent)] font-semibold">
-          Pro defaults
+          JPEG Quality
         </span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {PRESETS.map((preset) => {
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {QUALITY_PRESETS.map((preset) => {
           const selected = value === preset.id
           return (
             <button
@@ -85,7 +85,7 @@ export default function PresetSelector({ value, onChange }: PresetSelectorProps)
         })}
       </div>
       <p className="mt-4 text-[11px] text-[var(--secondary-text)]">
-        Full resolution output with EXIF metadata preserved.
+        Full resolution preserved. EXIF metadata copied from source.
       </p>
     </div>
   )

@@ -70,7 +70,7 @@ export function useConverter() {
   const convert = async (
     files: string[],
     outputDir: string,
-    quality: number = 100,
+    quality: number = 95,
     preset: string = 'standard'
   ): Promise<ConversionResponse | null> => {
     setIsLoading(true)
@@ -115,7 +115,7 @@ export function useConverter() {
       skipped: number
       total: number
     }) => void,
-    quality: number = 100,
+    quality: number = 95,
     preset: string = 'standard'
   ): Promise<ConversionResponse | null> => {
     setIsLoading(true)

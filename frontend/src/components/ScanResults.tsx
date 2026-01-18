@@ -1,6 +1,7 @@
 "use client"
 
 import PresetSelector from './PresetSelector'
+import QualitySelector from './QualitySelector'
 
 interface ScanResultsProps {
   totalFiles: number
@@ -11,6 +12,8 @@ interface ScanResultsProps {
   isConverting: boolean
   preset: string
   onPresetChange: (preset: string) => void
+  quality: number
+  onQualityChange: (quality: number) => void
 }
 
 export default function ScanResults({
@@ -21,7 +24,9 @@ export default function ScanResults({
   onStartConversion,
   isConverting,
   preset,
-  onPresetChange
+  onPresetChange,
+  quality,
+  onQualityChange
 }: ScanResultsProps) {
   return (
     <div className="glass-card bg-[var(--card-bg)] border border-white/5 rounded-2xl p-8">
@@ -54,6 +59,7 @@ export default function ScanResults({
       {pendingConversion > 0 ? (
         <div className="space-y-5">
           <PresetSelector value={preset} onChange={onPresetChange} />
+          <QualitySelector value={quality} onChange={onQualityChange} />
           <button
             onClick={onStartConversion}
             disabled={isConverting}

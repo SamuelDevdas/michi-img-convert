@@ -17,6 +17,7 @@ export default function Home() {
   const [conversionData, setConversionData] = useState<any>(null)
   const [selectedPath, setSelectedPath] = useState('')
   const [preset, setPreset] = useState('standard')
+  const [quality, setQuality] = useState(95)
   const [savedReview, setSavedReview] = useState<any | null>(null)
   const [isRestoring, setIsRestoring] = useState(false)
   
@@ -80,7 +81,7 @@ export default function Home() {
           total: update.total
         }))
       },
-      100,
+      quality,
       preset
     )
 
@@ -286,9 +287,11 @@ export default function Home() {
                     pendingConversion={scanData.pending_conversion}
                     totalSizeMb={scanData.total_size_mb}
                     onStartConversion={handleStartConversion}
-                    isConverting={state === 'converting'}
+                    isConverting={isLoading}
                     preset={preset}
                     onPresetChange={setPreset}
+                    quality={quality}
+                    onQualityChange={setQuality}
                 />
                 )}
 
