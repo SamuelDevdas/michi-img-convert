@@ -147,11 +147,13 @@ export default function Home() {
       }
 
       const data = await response.json()
+      // When restoring a review, we're viewing previously converted files
+      // successful = converted files, skipped/failed = 0 (not doing a new conversion)
       setConversionData({
         total: data.total_converted,
         successful: data.total_converted,
         failed: 0,
-        skipped: data.total_converted,
+        skipped: 0,
         processed: data.total_converted,
         results: data.pairs || []
       })
