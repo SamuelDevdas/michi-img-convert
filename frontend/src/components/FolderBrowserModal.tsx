@@ -36,20 +36,31 @@ export default function FolderBrowserModal({
     setIsLoading(true)
     setError(null)
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
     try {
-      const response = await fetch(`${apiBase}/api/browse?path=${encodeURIComponent(path)}`)
-      
+      const response = await fetch(
+        `${apiBase}/api/browse?path=${encodeURIComponent(path)}`,
+        { signal: controller.signal }
+      )
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.detail || 'Failed to browse directory')
       }
 
       const data: BrowseResponse = await response.json()
       setCurrentPath(data.current)
-      setDirectories(data.directories)
+      setDirectories(data.directories || [])
       setParent(data.parent)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out - try again')
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      }
     } finally {
       setIsLoading(false)
     }

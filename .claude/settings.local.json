@@ -20,7 +20,9 @@
       "Bash(npm install:*)",
       "Bash(npx jest:*)",
       "Bash(/Users/samue/Desktop/3-CONSULTING-WORK/1-CLIENTS/michi-img-convert/run_tests.sh unit)",
-      "Bash(/Users/samue/Desktop/3-CONSULTING-WORK/1-CLIENTS/michi-img-convert/run_tests.sh:*)"
+      "Bash(/Users/samue/Desktop/3-CONSULTING-WORK/1-CLIENTS/michi-img-convert/run_tests.sh:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)"
     ]
   }
 }
